@@ -1,4 +1,5 @@
 use leptos::*;
+use leptos_meta::*;
 
 #[component]
 pub fn FormContainer(
@@ -7,8 +8,10 @@ pub fn FormContainer(
     #[prop(into)] subtitle: String,
     children: Children,
 ) -> impl IntoView {
+
+
     view! {
-        //<script src="https://unpkg.com/pagedjs/dist/paged.polyfill.js"></script>
+        <Link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
         <header>
             <img id="logo" src=logo/>
             <div id="name">

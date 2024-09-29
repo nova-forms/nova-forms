@@ -4,7 +4,7 @@ use leptos::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::QueryString;
+use crate::{Icon, QueryString};
 use serde::de::Error;
 use server_fn::codec::{MultipartData, MultipartFormData};
 use web_sys::{wasm_bindgen::JsCast, FormData, HtmlInputElement};
@@ -12,10 +12,7 @@ use web_sys::{wasm_bindgen::JsCast, FormData, HtmlInputElement};
 // See this for reference: https://github.com/leptos-rs/leptos/blob/96e2b5cba10d2296f262820be19cac9b615b0d23/examples/server_fns_axum/src/app.rs
 
 #[component]
-pub fn FileUpload<L>(label: L, #[prop(into)] bind: QueryString) -> impl IntoView
-where
-    L: Display,
-{
+pub fn FileUpload(#[prop(into)] bind: QueryString) -> impl IntoView {
     let (qs, _form_data) = bind.form_context();
 
     let (file_info, set_file_info) = create_signal(Vec::new());
@@ -51,8 +48,8 @@ where
     };
 
     view! {
-        <label class="button" for=qs.to_string()>{format!("{label}")}</label>
-        <input id=qs.to_string() type="file" on:input=on_input/>
+        <label class="button icon-button" for=qs.to_string()><Icon label="Upload" icon="upload" /></label>
+        <input id=qs.to_string() type="file" class="sr-hidden" on:input=on_input/>
         <ul>
             <For
                 each=move || file_info.get().into_iter().enumerate()

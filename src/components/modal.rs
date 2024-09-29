@@ -25,7 +25,7 @@ pub fn Modal(kind: ModalKind, #[prop(into)] title: String, children: Children) -
                     {children()}
                 </div>
                 <div class="modal-footer">
-                    <button>"Confirm"</button>
+                    <button type="button">"Confirm"</button>
                 </div>
             </dialog>
         </div>

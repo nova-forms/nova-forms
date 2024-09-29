@@ -145,7 +145,13 @@ pub struct FormDataSerialized(HashMap<QueryString, String>);
 impl<F: Serialize> From<F> for FormDataSerialized {
     fn from(form_data: F) -> Self {
         let serialized = serde_qs::to_string(&form_data).expect("must be serializable");
-        let map = serialized
+        FormDataSerialized::from_query_str(&serialized)
+    }
+}
+
+impl FormDataSerialized {
+    pub fn from_query_str(string: &str) -> Self {
+        let map = string
             .split("&")
             .into_iter()
             .map(|pair| {
@@ -156,9 +162,15 @@ impl<F: Serialize> From<F> for FormDataSerialized {
             .collect();
         FormDataSerialized(map)
     }
-}
 
-impl FormDataSerialized {
+    pub fn to_query_string(&self) -> String {
+        self.0
+            .iter()
+            .map(|(k, v)| format!("{}={}", k, v))
+            .collect::<Vec<_>>()
+            .join("&")
+    }
+
     pub fn exact(&self, key: &QueryString) -> Option<String> {
         self.0.get(&key).map(|s| s.to_owned())
     }

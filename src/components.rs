@@ -5,6 +5,9 @@ mod input;
 mod modal;
 mod nova_form;
 mod repeatable;
+mod pages;
+mod icon;
+mod icon_button;
 
 pub use file_upload::*;
 pub use form_container::*;
@@ -13,3 +16,6 @@ pub use input::*;
 pub use modal::*;
 pub use nova_form::*;
 pub use repeatable::*;
+pub use pages::*;
+pub use icon::*;
+pub use icon_button::*;

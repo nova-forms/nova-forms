@@ -1212,6 +1212,7 @@ version = "0.1.0"
 dependencies = [
  "futures",
  "headless_chrome",
+ "js-sys",
  "leptos",
  "leptos_meta",
  "leptos_router",
