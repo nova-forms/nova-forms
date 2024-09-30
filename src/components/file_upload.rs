@@ -133,7 +133,7 @@ impl FileInfo {
 }
 
 #[server(input = MultipartFormData)]
-pub async fn upload_file(data: MultipartData) -> Result<Vec<FileInfo>, ServerFnError> {
+async fn upload_file(data: MultipartData) -> Result<Vec<FileInfo>, ServerFnError> {
     let mut data = data.into_inner().unwrap();
     let mut file_info = Vec::new();
 

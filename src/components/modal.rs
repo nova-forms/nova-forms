@@ -9,7 +9,12 @@ pub enum ModalKind {
 }
 
 #[component]
-pub fn Modal(kind: ModalKind, #[prop(into)] title: String, children: Children) -> impl IntoView {
+pub fn Modal(
+    kind: ModalKind,
+    #[prop(into)] title: String,
+    #[prop(into)] close: Callback<(), ()>,
+    children: Children
+) -> impl IntoView {
     view! {
         <div class="modal">
             <dialog open aria-modal="true" class={match kind {
@@ -25,7 +30,7 @@ pub fn Modal(kind: ModalKind, #[prop(into)] title: String, children: Children) -
                     {children()}
                 </div>
                 <div class="modal-footer">
-                    <button type="button">"Confirm"</button>
+                    <button type="button" on:click=move |_ev| close.call(())>"Confirm"</button>
                 </div>
             </dialog>
         </div>

@@ -6,9 +6,25 @@ use server_fn::{
     client::Client, codec::PostUrl, error::NoCustomError, request::ClientReq, ServerFn,
 };
 use std::marker::PhantomData;
+use thiserror::Error;
 
-use crate::{FormDataSerialized, Icon, IconButton, Pages, QueryString};
+use crate::{FormDataSerialized, Icon, IconButton, Modal, QueryString, ModalKind};
 
+#[derive(Error, Debug, Clone, Copy)]
+enum SubmitError {
+    #[error("the form contains errors")]
+    ValidationError,
+    #[error("a server error occurred")]
+    ServerError,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum SubmitState {
+    Initial,
+    Pending,
+    Error(SubmitError),
+    Success,
+}
 
 #[component]
 pub fn NovaForm<F, ServFn>(
@@ -30,6 +46,17 @@ where
     let form_data = FormDataSerialized::from(form_data);
 
     let (preview_mode, set_preview_mode) = create_signal(false);
+    let (submit_state, set_submit_state) = create_signal(SubmitState::Initial);
+
+    let on_submit_value = on_submit.value();
+    create_effect(move |_| {
+        match on_submit_value.get() {
+            Some(Ok(_)) => set_submit_state.set(SubmitState::Success),
+            Some(Err(_)) => set_submit_state.set(SubmitState::Error(SubmitError::ServerError)),
+            None => {}
+        }
+    });
+
 
     provide_context(bind);
     provide_context(form_data.clone());
@@ -60,11 +87,20 @@ where
                 ev.prevent_default();
                 return;
             }
+
+            let data = ServFn::from_event(&ev);
+            if let Err(err) = data {
+                println!("error: {err}");
+                set_submit_state.set(SubmitState::Error(SubmitError::ValidationError));
+                ev.prevent_default();
+                return;
+            }
  
             ev.prevent_default();
 
             match ServFn::from_event(&ev) {
                 Ok(new_input) => {
+                    set_submit_state.set(SubmitState::Pending);
                     on_submit.dispatch(new_input);
                 }
                 Err(err) => {
@@ -193,6 +229,25 @@ where
 
         
         </aside>
+
+        { move || match submit_state.get() {
+            SubmitState::Initial => view! {}.into_view(),
+            SubmitState::Pending => view! {
+                <Modal kind=ModalKind::Info title="Submission" close=move |()| set_submit_state.set(SubmitState::Initial)>
+                    "Your form is being submitted."
+                </Modal>
+            }.into_view(),
+            SubmitState::Error(err) => view! {
+                <Modal kind=ModalKind::Error title="Submission" close=move |()| set_submit_state.set(SubmitState::Initial)>
+                    {format!("Your form could not be submitted: {err}.")}
+                </Modal>
+            }.into_view(),
+            SubmitState::Success => view! {
+                <Modal kind=ModalKind::Success title="Submission" close=move |()| set_submit_state.set(SubmitState::Initial)>
+                    "Your form was successfully submitted."
+                </Modal>
+            }.into_view(),
+        } }
         
 
         /*<IconButton label="Download" icon="download" on:click=move |_| {

@@ -8,6 +8,7 @@ mod repeatable;
 mod pages;
 mod icon;
 mod icon_button;
+mod address;
 
 pub use file_upload::*;
 pub use form_container::*;
@@ -19,3 +20,4 @@ pub use repeatable::*;
 pub use pages::*;
 pub use icon::*;
 pub use icon_button::*;
+pub use address::*;
