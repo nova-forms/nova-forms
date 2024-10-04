@@ -11,7 +11,7 @@ pub enum ModalKind {
 #[component]
 pub fn Modal(
     kind: ModalKind,
-    #[prop(into)] title: String,
+    #[prop(into)] title: TextProp,
     #[prop(into)] close: Callback<(), ()>,
     children: Children
 ) -> impl IntoView {

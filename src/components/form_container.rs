@@ -4,8 +4,8 @@ use leptos_meta::*;
 #[component]
 pub fn FormContainer(
     #[prop(into)] logo: String,
-    #[prop(into)] title: String,
-    #[prop(into)] subtitle: String,
+    #[prop(into)] title: TextProp,
+    #[prop(into)] subtitle: TextProp,
     children: Children,
 ) -> impl IntoView {
 
@@ -15,8 +15,8 @@ pub fn FormContainer(
         <header>
             <img id="logo" src=logo/>
             <div id="name">
-                <span id="title">{&title}</span><br/>
-                <span id="subtitle">{&subtitle}</span>
+                <span id="title">{title.clone()}</span><br/>
+                <span id="subtitle">{subtitle}</span>
             </div>
         </header>
         <nav></nav>
@@ -24,7 +24,7 @@ pub fn FormContainer(
             {children()}
         </main>
         <footer>
-            <span>{&title}</span>
+            <span>{title}</span>
         </footer>
     }
 }

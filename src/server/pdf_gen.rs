@@ -7,7 +7,7 @@ use thiserror::Error;
 use tokio::{fs::File, io::AsyncWriteExt, process::Command};
 use uuid::Uuid;
 
-#[derive(Clone, Default)]
+#[derive(Clone)]
 pub struct PdfGen {
     settings: Arc<Settings>,
 }
@@ -25,6 +25,12 @@ impl Default for Settings {
 }
 
 impl PdfGen {
+    pub fn new() -> Self {
+        Self {
+            settings: Arc::new(Settings::default()),
+        }
+    }
+
     async fn render_html<S: AsRef<str>>(&self, html: S) -> Result<PathBuf, Error> {
         let uuid = Uuid::new_v4();
         let name = uuid.to_string();

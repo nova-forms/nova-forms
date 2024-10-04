@@ -5,7 +5,7 @@ use crate::Icon;
 #[component]
 pub fn IconButton(
     #[prop(optional, into)] button_type: Option<String>,
-    #[prop(into)] label: String,
+    #[prop(into)] label: TextProp,
     #[prop(into)] icon: String,
     #[prop(optional, into)] id: Option<String>,
 ) -> impl IntoView

@@ -2,7 +2,7 @@ use leptos::*;
 
 #[component]
 pub fn Icon(
-    #[prop(into)] label: String,
+    #[prop(into)] label: TextProp,
     #[prop(into)] icon: String,
 ) -> impl IntoView
 {

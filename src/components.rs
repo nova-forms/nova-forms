@@ -9,6 +9,7 @@ mod pages;
 mod icon;
 mod icon_button;
 mod address;
+mod language_select;
 
 pub use file_upload::*;
 pub use form_container::*;
@@ -21,3 +22,4 @@ pub use pages::*;
 pub use icon::*;
 pub use icon_button::*;
 pub use address::*;
+pub use language_select::*;

@@ -1,50 +1,50 @@
 use leptos::*;
 
 #[derive(Debug, Clone)]
-struct TabData {
+pub(crate) struct TabData {
     id: TabId,
     label: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-struct TabId(&'static str);
+pub(crate) struct TabId(&'static str);
 
 #[derive(Debug, Clone, Default)]
-struct PagesContext {
+pub(crate) struct PagesContext {
     tabs: Vec<TabData>,
     selected: usize,
 }
 
 impl PagesContext {
-    fn register(&mut self, data: TabData) {
+    pub(crate) fn register(&mut self, data: TabData) {
         self.tabs.push(data);
     }
 
-    fn is_selected(&self, id: TabId) -> bool {
+    pub(crate) fn is_selected(&self, id: TabId) -> bool {
         self.tabs.iter().position(|t| t.id == id).map(|idx| idx == self.selected).unwrap_or(false)
     }
 
-    fn first_selected(&self) -> bool {
+    pub(crate) fn first_selected(&self) -> bool {
         self.selected == 0 && !self.tabs.is_empty()
     }
 
-    fn last_selected(&self) -> bool {
+    pub(crate) fn last_selected(&self) -> bool {
         self.selected == self.tabs.len() - 1 && !self.tabs.is_empty()
     }
 
-    fn next(&mut self) {
+    pub(crate) fn next(&mut self) {
         if self.selected + 1 < self.tabs.len() {
             self.selected += 1;
         }
     }
 
-    fn prev(&mut self) {
+    pub(crate) fn prev(&mut self) {
         if self.selected > 0 {
             self.selected -= 1;
         }
     }
 
-    fn select(&mut self, id: TabId) {
+    pub(crate) fn select(&mut self, id: TabId) {
         if let Some(idx) = self.tabs.iter().position(|t| t.id == id) {
             self.selected = idx;
         }

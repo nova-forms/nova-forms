@@ -116,11 +116,12 @@ impl<'de> Deserialize<'de> for FileId {
 pub struct FileInfo {
     file_id: FileId,
     file_name: String,
+    content_type: Option<String>,
 }
 
 impl FileInfo {
-    pub fn new(file_id: FileId, file_name: String) -> Self {
-        FileInfo { file_id, file_name }
+    pub fn new(file_id: FileId, file_name: String, content_type: Option<String>) -> Self {
+        FileInfo { file_id, file_name, content_type }
     }
 
     pub fn file_name(&self) -> &str {
@@ -138,6 +139,7 @@ async fn upload_file(data: MultipartData) -> Result<Vec<FileInfo>, ServerFnError
     let mut file_info = Vec::new();
 
     while let Ok(Some(mut field)) = data.next_field().await {
+        let content_type = field.content_type().map(|mime| mime.to_string());
         let file_name = field.file_name().expect("no filename on field").to_string();
         while let Ok(Some(chunk)) = field.chunk().await {
             let len = chunk.len();
@@ -146,7 +148,7 @@ async fn upload_file(data: MultipartData) -> Result<Vec<FileInfo>, ServerFnError
             // in a real server function, you'd do something like saving the file here
         }
 
-        file_info.push(FileInfo::new(FileId::new(), file_name));
+        file_info.push(FileInfo::new(FileId::new(), file_name, content_type));
     }
 
     Ok(file_info)

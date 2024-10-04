@@ -4,7 +4,7 @@ use crate::{Datatype, QueryString};
 
 #[component]
 pub fn Input<T>(
-    #[prop(into)] label: String,
+    #[prop(into)] label: TextProp,
     #[prop(into)] bind: QueryString,
     #[prop(optional, into)] placeholder: Option<T>,
     #[prop(optional, into)] value: Option<T>,
@@ -28,7 +28,7 @@ where
 
     view! {
         <div class="field">
-            <label for=qs.to_string()>{format!("{label}")}</label>
+            <label for=qs.to_string()>{label}</label>
             /*<input id=qs.to_string() type="text" name=qs.to_string() value=format!("{}", value.unwrap_or_default()) placeholder=placeholder.as_ref().map(T::to_string).unwrap_or_default() on:input=move |ev| {
                 set_error.set(T::validate(event_target_value(&ev)));
             }/>*/
