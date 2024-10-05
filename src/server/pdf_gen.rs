@@ -6,6 +6,7 @@ use std::{
 use thiserror::Error;
 use tokio::{fs::File, io::AsyncWriteExt, process::Command};
 use uuid::Uuid;
+use leptos::IntoView;
 
 #[derive(Clone)]
 pub struct PdfGen {
@@ -65,11 +66,15 @@ impl PdfGen {
 
         Ok(output_path)
     }
-
-    pub async fn render_form(
+    
+    pub async fn render_form<F, IV>(
         &self,
-        form: impl FnOnce() -> leptos::View + 'static,
-    ) -> Result<PathBuf, Error> {
+        form: F,
+    ) -> Result<PathBuf, Error>
+    where
+        F: FnOnce() -> IV + Send + 'static,
+        IV: IntoView + 'static,
+    {
         use leptos::*;
         use leptos_meta::provide_meta_context;
         use tokio::{fs::File, io::AsyncReadExt};
@@ -83,8 +88,6 @@ impl PdfGen {
         file.read_to_string(&mut contents).await?;
 
         let html = leptos::ssr::render_to_string(move || {
-            provide_meta_context();
-
             view! {
                 <style>{contents}</style>
                 {form()}

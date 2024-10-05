@@ -1,7 +1,7 @@
 use ev::SubmitEvent;
 use leptos::*;
 use leptos_router::*;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use server_fn::{
     client::Client, codec::PostUrl, error::NoCustomError, request::ClientReq, ServerFn,
 };
@@ -129,7 +129,7 @@ where
 
     let children = children();
 
-    let pages = pages_context.get().pages()
+    let pages = pages_context.get_untracked().pages()
         .iter()
         .map(|tab| {
             (tab.id.clone(), tab.label.clone())
@@ -177,6 +177,7 @@ where
     view! {    
         <form id="nova-form" action="" on:submit=on_submit_inner class=move || if preview_mode.get() { "hidden" } else { "edit" }>
             {children}
+            <input type="hidden" name="meta_data[locale]" value={move || i18n.get_locale().to_string()} />
             <div>
                 <Show when=move || !pages_context.get().is_first_selected() >
                     <IconButton label="Previous Page" icon="arrow_back" on:click = move |_| set_pages_context.update(|pages_context| pages_context.prev()) />
@@ -198,7 +199,6 @@ where
             }
 
             function preparePreview() {
-                console.log("Preparing preview...");
                 // Populate the values to the value attributes.
                 document.querySelectorAll("input").forEach((input) => {
                     input.setAttribute("value", input.value);
@@ -207,9 +207,11 @@ where
                 // Populate the preview iframe with the current document.
                 const preview = document.getElementById("preview");
                 preview.srcdoc = document.documentElement.outerHTML;
-
+                
                 // Scale the preview to fit the screen.
-                (new MutationObserver(resizeIframe)).observe(
+                (new MutationObserver(() => {
+                    resizeIframe();
+                })).observe(
                     preview.contentWindow.document.body,
                     { attributes: true, childList: true, subtree: true }
                 );
@@ -217,10 +219,19 @@ where
 
             function preparePreviewInsideIframe() {
                 // Add the paged.js polyfill.
-                var script = document.createElement("script");
+                let script = document.createElement("script");
                 script.src = "https://unpkg.com/pagedjs/dist/paged.polyfill.js";
                 document.head.appendChild(script);
 
+                // Hide the body while the preview is being prepared.
+                document.body.style.visibility = "hidden";
+                document.body.style.backgroundColor = "white";
+                window.PagedConfig = {
+                    after: (flow) => {
+                        document.body.removeAttribute("style");
+                    },
+                };
+                
                 // Disable all form inputs.
                 document.querySelectorAll("input").forEach((input) => {
                     input.disabled = true;
@@ -235,7 +246,6 @@ where
 
             function resizeIframe() {
                 const preview = document.getElementById("preview");
-                console.log("resizing iframe", window.innerWidth, preview.offsetWidth, Math.min(1, (window.innerWidth / preview.contentWindow.document.body.scrollWidth)), preview.contentWindow.document.body.scrollWidth);
                 let scaleFactor =  Math.min(1, (window.innerWidth / preview.contentWindow.document.body.scrollWidth));
                 if (scaleFactor < 1) {
                     preview.style.width = "210mm";
@@ -250,9 +260,7 @@ where
             }
         "#</script>
 
-        <aside id="nova-form-actions">
-
-
+        <aside id="nova-form-actions" class="ui">
             <Show when=move || { pages_context.get().len() > 1 && !preview_mode.get() } >
                 <IconSelect
                     id="menu"
@@ -272,10 +280,6 @@ where
                     value=move || i18n.get_locale()
                     on_change=move |locale| i18n.set_locale(locale) />
             </Show>
-            
-
-
-            //<IconButton label="Menu" icon="menu" on:click=move |_| { } />
 
             {
                 move || if preview_mode.get() {
@@ -331,4 +335,48 @@ where
         } />*/
 
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MetaData {
+    pub locale: String
+}
+
+#[macro_export]
+macro_rules! init_nova_forms {
+    () => {
+        // Initializes the locales for the form.
+        leptos_i18n::load_locales!();
+        use i18n::*;
+
+        #[component]
+        pub fn NovaFormContextProvider(
+            #[prop(optional)] meta_data: Option<MetaData>,
+            children: leptos::Children,
+        ) -> impl IntoView {
+            use std::str::FromStr;
+
+            // Provides context that manages stylesheets, titles, meta tags, etc.
+            leptos_meta::provide_meta_context();
+
+            view! {
+                <I18nContextProvider>
+                    {
+                        let i18n = use_i18n();
+                        
+                        // Sets the locale from the meta data.
+                        if let Some(meta_data) = meta_data {
+                            i18n.set_locale(i18n::Locale::from_str(meta_data.locale.as_str()).unwrap());
+                        }
+                        
+                        view! {
+                            <FormContainer title=t!(i18n, nova_forms) subtitle=t!(i18n, demo_form) logo="/logo.png">
+                                {children()}
+                            </FormContainer>
+                        }
+                    }
+                </I18nContextProvider>
+            }
+        }
+    };
 }
