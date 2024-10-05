@@ -1,13 +1,29 @@
+use std::{borrow::Cow, str::FromStr};
+
 use leptos::*;
 
 #[derive(Debug, Clone)]
 pub(crate) struct TabData {
-    id: TabId,
-    label: String,
+    pub(crate) id: TabId,
+    pub(crate) label: String,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub(crate) struct TabId(&'static str);
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub(crate) struct TabId(Cow<'static, str>);
+
+impl ToString for TabId {
+    fn to_string(&self) -> String {
+        self.0.to_string()
+    }
+}
+
+impl FromStr for TabId {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(TabId(Cow::Owned(s.to_owned())))
+    }
+}
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct PagesContext {
@@ -24,12 +40,20 @@ impl PagesContext {
         self.tabs.iter().position(|t| t.id == id).map(|idx| idx == self.selected).unwrap_or(false)
     }
 
-    pub(crate) fn first_selected(&self) -> bool {
+    pub(crate) fn is_first_selected(&self) -> bool {
         self.selected == 0 && !self.tabs.is_empty()
     }
 
-    pub(crate) fn last_selected(&self) -> bool {
+    pub(crate) fn is_last_selected(&self) -> bool {
         self.selected == self.tabs.len() - 1 && !self.tabs.is_empty()
+    }
+
+    pub(crate) fn first(&self) -> Option<TabId> {
+        self.tabs.first().map(|tab_data| tab_data.id.clone())
+    }
+
+    pub(crate) fn last(&self) -> Option<TabId> {
+        self.tabs.last().map(|tab_data| tab_data.id.clone())
     }
 
     pub(crate) fn next(&mut self) {
@@ -49,17 +73,21 @@ impl PagesContext {
             self.selected = idx;
         }
     }
-    /*
-    fn len(&self) -> usize {
+
+    pub(crate) fn len(&self) -> usize {
         self.tabs.len()
     }
 
-    fn selected(&self) -> usize {
-        self.selected
+    pub(crate) fn selected(&self) -> Option<TabId> {
+        self.tabs.get(self.selected).map(|tab_data| tab_data.id.clone())
     }
-    */
+
+    pub(crate) fn pages(&self) -> &[TabData] {
+        self.tabs.as_slice()
+    }
 }
 
+/*
 #[component]
 pub fn Pages(children: Children) -> impl IntoView {
     let (pages_context, set_pages_context) = create_signal(PagesContext::default());
@@ -94,6 +122,7 @@ pub fn Pages(children: Children) -> impl IntoView {
         </div>
     }
 }
+*/
 
 #[component]
 pub fn Page(
@@ -101,15 +130,23 @@ pub fn Page(
     #[prop(into)] label: String,
     children: Children
 ) -> impl IntoView {
-    let id = TabId(id);
+    let id = TabId(Cow::Borrowed(id));
 
     let (pages_context, set_pages_context) = expect_context::<(ReadSignal<PagesContext>, WriteSignal<PagesContext>)>();
 
-    set_pages_context.update(|pages_context| pages_context.register(TabData { id, label: label.clone() }));
+    set_pages_context.update(|pages_context| pages_context.register(TabData { id: id.clone(), label: label.clone() }));
 
     view! {
-        <div class=move || if pages_context.get().is_selected(id) { "page selected" } else { "page hidden" } >
+        <div class=move || if pages_context.get().is_selected(id.clone()) { "page selected" } else { "page hidden" } >
             {children()}
+            /*<div>
+                <Show when=move || !pages_context.get().is_first_selected() >
+                    <button type="button" on:click = move |_| set_pages_context.update(|pages_context| pages_context.prev()) >"Previous Page"</button>
+                </Show>
+                <Show when=move || !pages_context.get().is_last_selected() >
+                    <button type="button" on:click = move |_| set_pages_context.update(|pages_context| pages_context.next()) >"Next Page"</button>
+                </Show>
+            </div>*/
         </div>
     }
 }

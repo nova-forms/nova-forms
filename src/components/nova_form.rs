@@ -5,10 +5,11 @@ use serde::{de::DeserializeOwned, Serialize};
 use server_fn::{
     client::Client, codec::PostUrl, error::NoCustomError, request::ClientReq, ServerFn,
 };
-use std::marker::PhantomData;
+use std::{fmt::Debug, marker::PhantomData, str::FromStr};
 use thiserror::Error;
+use leptos_i18n::*;
 
-use crate::{FormDataSerialized, Icon, IconButton, Modal, QueryString, ModalKind};
+use crate::{FormDataSerialized, IconButton, IconSelect, Modal, ModalKind, PagesContext, QueryString, TabId};
 
 #[derive(Error, Debug, Clone, Copy)]
 enum SubmitError {
@@ -27,11 +28,12 @@ enum SubmitState {
 }
 
 #[component]
-pub fn NovaForm<F, ServFn>(
+pub fn NovaForm<F, ServFn, L, K>(
     #[prop(optional)] form_data: F,
     on_submit: Action<ServFn, Result<(), ServerFnError>>,
     #[prop(into)] bind: QueryString,
     #[prop(optional)] _arg: PhantomData<ServFn>,
+    i18n: I18nContext<L, K>,
     children: Children,
 ) -> impl IntoView
 where
@@ -41,9 +43,15 @@ where
         + 'static,
     <<ServFn::Client as Client<ServFn::Error>>::Request as ClientReq<ServFn::Error>>::FormData:
         From<web_sys::FormData>,
+    L: Locale + 'static,
+    <L as FromStr>::Err: Debug,
+    K: LocaleKeys<Locale = L> + 'static,
 {
-    
+
     let form_data = FormDataSerialized::from(form_data);
+
+    provide_context(bind);
+    provide_context(form_data.clone());
 
     let (preview_mode, set_preview_mode) = create_signal(false);
     let (submit_state, set_submit_state) = create_signal(SubmitState::Initial);
@@ -56,10 +64,6 @@ where
             None => {}
         }
     });
-
-
-    provide_context(bind);
-    provide_context(form_data.clone());
    
     let version = on_submit.version();
     let value = on_submit.value();
@@ -119,43 +123,44 @@ where
         }
     };
 
-    view! {
-        /*
-        <Form action="POST" on:submit = on_submit_inner>
-            {children()}
-        </Form>
-        <Show when=not_print_mode>
-            <iframe id="preview" src=format!("/?mode=print&data={}", form_data.clone().to_query_string())></iframe>
-        </Show>
-        <Show when=print_mode>
-            <style>r#"
-                form > *, header, footer {
-                    display: none;
-                }
-            "#</style>
-            <script>r#"
-                window.PagedConfig = {
-                    after: () => {
-                        const elems = document.querySelectorAll("form > *");
-                        for (let i = 0; i < elems.length; i++) {
-                            elems[i].style.display = "block";
-                        }
-                    },
-                };
-            "#</script>
-            <script src="https://unpkg.com/pagedjs/dist/paged.polyfill.js"></script>
-        </Show>
-        */
-        /*<script src="https://unpkg.com/pagedjs/dist/paged.polyfill.js"></script>*/
+    let (pages_context, set_pages_context) = create_signal(PagesContext::default());
+    
+    provide_context((pages_context, set_pages_context));
 
-     
-        
+    let children = children();
+
+    let pages = pages_context.get().pages()
+        .iter()
+        .map(|tab| {
+            (tab.id.clone(), tab.label.clone())
+        })
+        .collect::<Vec<(TabId, String)>>();
+    
+    let locales = L::get_all()
+        .iter()
+        .map(|locale| {
+            (*locale, format!("{}", locale))
+        })
+        .collect::<Vec<(L, String)>>();
+    
+
+    view! {    
         <form id="nova-form" action="" on:submit=on_submit_inner class=move || if preview_mode.get() { "hidden" } else { "edit" }>
-            {children()}
+            {children}
+            <div>
+                <Show when=move || !pages_context.get().is_first_selected() >
+                    <IconButton label="Previous Page" icon="arrow_back" on:click = move |_| set_pages_context.update(|pages_context| pages_context.prev()) />
+                </Show>
+                <Show when=move || !pages_context.get().is_last_selected() >
+                    <IconButton label="Next Page" icon="arrow_forward" on:click = move |_| set_pages_context.update(|pages_context| pages_context.next()) />
+                </Show>
+                /*<Show when=move || pages_context.get().is_last_selected() >
+                    <IconButton button_type="submit" label="Submit" icon="send" />
+                </Show>*/
+            </div>
         </form>
 
         <iframe class=move || if !preview_mode.get() { "hidden" } else { "edit" } id="preview"></iframe>
-        //<div id="ruler" style="width: 210mm; height: 297mm; display: block"></div>
 
         <script>r#"
             function isIframe() {
@@ -203,6 +208,28 @@ where
         <aside id="nova-form-actions">
 
 
+            <Show when=move || { pages_context.get().len() > 1 && !preview_mode.get() } >
+                <IconSelect
+                    id="menu"
+                    label="Menu"
+                    icon="menu"
+                    values=pages.clone()
+                    value=move || pages_context.get().selected().unwrap()
+                    on_change=move |tab_id| set_pages_context.update(|pages_context| pages_context.select(tab_id)) />
+            </Show>
+
+            <Show when=move || !preview_mode.get() >
+                <IconSelect
+                    id="language"
+                    label="Language"
+                    icon="translate"
+                    values=locales.clone()
+                    value=move || i18n.get_locale()
+                    on_change=move |locale| i18n.set_locale(locale) />
+            </Show>
+            
+
+
             //<IconButton label="Menu" icon="menu" on:click=move |_| { } />
 
             {
@@ -222,10 +249,7 @@ where
                 }
             }
 
-            //<IconButton button_type="submit" label="Submit" icon="send" form="nova-form"/>
-            <button type="submit" class="icon-button" form="nova-form" >
-                <Icon label="Submit" icon="send" />
-            </button>
+            <IconButton button_type="submit" label="Submit" icon="send" form="nova-form"/>
 
         
         </aside>

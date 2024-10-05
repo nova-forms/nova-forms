@@ -15,6 +15,19 @@ where
     F: Fn(V) + Copy + 'static,
     G: Fn() -> V + Copy + 'static
 {
+
+    let options = view! {
+        <For
+            each=move || values.clone()
+            key=|(value, _)| value.clone()
+            children = move |(v, d)| {
+                view! {
+                    <option value=v.to_string()>{format!("{d}")}</option>
+                }
+            }
+        />
+    };
+    
     view! {
         <select
             on:change=move |ev| { 
@@ -23,18 +36,9 @@ where
                 on_change(value)
             } 
             prop:value=move || value().to_string()
+            name="language"
         >
-            <For
-                each=move || values.clone()
-                key=|(value, _)| value.clone()
-                children = move |(v, d)| {
-                    let selected = v == value();
-
-                    view! {
-                        <option value=v.to_string()>{format!("{d}")}</option>
-                    }
-                }
-            />
+            {options}
         </select>
     }
 }

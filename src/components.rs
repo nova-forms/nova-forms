@@ -8,8 +8,9 @@ mod repeatable;
 mod pages;
 mod icon;
 mod icon_button;
+mod icon_select;
 mod address;
-mod language_select;
+mod select;
 
 pub use file_upload::*;
 pub use form_container::*;
@@ -21,5 +22,6 @@ pub use repeatable::*;
 pub use pages::*;
 pub use icon::*;
 pub use icon_button::*;
+pub use icon_select::*;
 pub use address::*;
-pub use language_select::*;
+pub use select::*;
