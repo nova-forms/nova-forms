@@ -5,7 +5,7 @@ use leptos::*;
 #[derive(Debug, Clone)]
 pub(crate) struct TabData {
     pub(crate) id: TabId,
-    pub(crate) label: String,
+    pub(crate) label: TextProp,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -46,14 +46,6 @@ impl PagesContext {
 
     pub(crate) fn is_last_selected(&self) -> bool {
         self.selected == self.tabs.len() - 1 && !self.tabs.is_empty()
-    }
-
-    pub(crate) fn first(&self) -> Option<TabId> {
-        self.tabs.first().map(|tab_data| tab_data.id.clone())
-    }
-
-    pub(crate) fn last(&self) -> Option<TabId> {
-        self.tabs.last().map(|tab_data| tab_data.id.clone())
     }
 
     pub(crate) fn next(&mut self) {
@@ -127,26 +119,18 @@ pub fn Pages(children: Children) -> impl IntoView {
 #[component]
 pub fn Page(
     id: &'static str,
-    #[prop(into)] label: String,
+    #[prop(into)] label: TextProp,
     children: Children
 ) -> impl IntoView {
     let id = TabId(Cow::Borrowed(id));
 
     let (pages_context, set_pages_context) = expect_context::<(ReadSignal<PagesContext>, WriteSignal<PagesContext>)>();
 
-    set_pages_context.update(|pages_context| pages_context.register(TabData { id: id.clone(), label: label.clone() }));
+    set_pages_context.update(|pages_context| pages_context.register(TabData { id: id.clone(), label }));
 
     view! {
         <div class=move || if pages_context.get().is_selected(id.clone()) { "page selected" } else { "page hidden" } >
             {children()}
-            /*<div>
-                <Show when=move || !pages_context.get().is_first_selected() >
-                    <button type="button" on:click = move |_| set_pages_context.update(|pages_context| pages_context.prev()) >"Previous Page"</button>
-                </Show>
-                <Show when=move || !pages_context.get().is_last_selected() >
-                    <button type="button" on:click = move |_| set_pages_context.update(|pages_context| pages_context.next()) >"Next Page"</button>
-                </Show>
-            </div>*/
         </div>
     }
 }

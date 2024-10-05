@@ -9,7 +9,7 @@ use std::{fmt::Debug, marker::PhantomData, str::FromStr};
 use thiserror::Error;
 use leptos_i18n::*;
 
-use crate::{FormDataSerialized, IconButton, IconSelect, Modal, ModalKind, PagesContext, QueryString, TabId};
+use crate::{FormDataSerialized, IconButton, IconSelect, Modal, ModalKind, PagesContext, QueryString};
 
 #[derive(Error, Debug, Clone, Copy)]
 enum SubmitError {
@@ -134,14 +134,44 @@ where
         .map(|tab| {
             (tab.id.clone(), tab.label.clone())
         })
-        .collect::<Vec<(TabId, String)>>();
+        .collect::<Vec<_>>();
     
     let locales = L::get_all()
         .iter()
         .map(|locale| {
-            (*locale, format!("{}", locale))
+            let id = &locale.as_icu_locale().id;
+            let language_str = match id.language.as_str() {
+                "en" => "English",
+                "de" => "Deutsch",
+                "fr" => "Français",
+                "it" => "Italiano",
+                "es" => "Español",
+                other => other,
+            };
+            let region = id.region.as_ref();
+            let region_str = match region {
+                Some(region) => match region.as_str() {
+                    "US" => "🇺🇸",
+                    "GB" => "🇬🇧",
+                    "DE" => "🇩🇪",
+                    "CH" => "🇨🇭",
+                    "FR" => "🇫🇷",
+                    "IT" => "🇮🇹",
+                    "ES" => "🇪🇸",
+                    other => other,
+                }
+                None => match id.language.as_str() {
+                    "en" => "🇺🇸",
+                    "de" => "🇩🇪",
+                    "fr" => "🇫🇷",
+                    "it" => "🇮🇹",
+                    "es" => "🇪🇸",
+                    _ => "",
+                },
+            };
+            (*locale, if region_str.is_empty() { format!("{}", language_str) } else { format!("{} {}", region_str, language_str) }.into())
         })
-        .collect::<Vec<(L, String)>>();
+        .collect::<Vec<_>>();
     
 
     view! {    
@@ -179,13 +209,10 @@ where
                 preview.srcdoc = document.documentElement.outerHTML;
 
                 // Scale the preview to fit the screen.
-                /*
-                const ruler = document.getElementById("ruler");
-                let vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
-                console.log(ruler.offsetWidth, vw, (ruler.offsetWidth / vw));
-                preview.style.transform = "scale(" + Math.min(1, (vw / ruler.offsetWidth)) + ")";
-                preview.style.transformOrigin = "top left";
-                */
+                (new MutationObserver(resizeIframe)).observe(
+                    preview.contentWindow.document.body,
+                    { attributes: true, childList: true, subtree: true }
+                );
             }
 
             function preparePreviewInsideIframe() {
@@ -202,6 +229,24 @@ where
 
             if (isIframe()) {
                 preparePreviewInsideIframe();
+            } else {
+                window.addEventListener("resize", resizeIframe);
+            }
+
+            function resizeIframe() {
+                const preview = document.getElementById("preview");
+                console.log("resizing iframe", window.innerWidth, preview.offsetWidth, Math.min(1, (window.innerWidth / preview.contentWindow.document.body.scrollWidth)), preview.contentWindow.document.body.scrollWidth);
+                let scaleFactor =  Math.min(1, (window.innerWidth / preview.contentWindow.document.body.scrollWidth));
+                if (scaleFactor < 1) {
+                    preview.style.width = "210mm";
+                    preview.style.height = "297mm";
+                    preview.style.transformOrigin = "top left";
+                    preview.style.transform = "scale(" + scaleFactor + ")";
+                    preview.style.marginRight = -210 * (1 - scaleFactor) + "mm";
+                    preview.style.marginBottom = -297 * (1 - scaleFactor) + "mm";
+                } else {
+                    preview.removeAttribute("style");
+                }
             }
         "#</script>
 

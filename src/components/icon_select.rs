@@ -1,22 +1,21 @@
-use std::{fmt::{Debug, Display}, hash::Hash, str::FromStr};
+use std::{fmt::Debug, hash::Hash, str::FromStr};
 
 use leptos::*;
 
 use crate::Icon;
 
 #[component]
-pub fn IconSelect<V, D, F, G>(
+pub fn IconSelect<V, F, G>(
     #[prop(into)] label: TextProp,
     #[prop(into)] icon: String,
     #[prop(into)] id: String,
-    #[prop(into)] values: Vec<(V, D)>,
+    #[prop(into)] values: Vec<(V, TextProp)>,
     value: G,
     on_change: F,
 ) -> impl IntoView
 where
     V: FromStr + ToString + Eq + Hash + Clone + 'static,
     <V as FromStr>::Err: Debug,
-    D: Display + Clone + 'static,
     F: Fn(V) + Copy + 'static,
     G: Fn() -> V + Copy + 'static
 {
@@ -26,14 +25,14 @@ where
             key=|(value, _)| value.clone()
             children = move |(v, d)| {
                 view! {
-                    <option value=v.to_string()>{format!("{d}")}</option>
+                    <option value=v.to_string()>{d}</option>
                 }
             }
         />
     };
     
     view! {
-        <label class="icon-button" for=id.clone() >
+        <label class="ui icon-select button" for=id.clone() >
             <Icon label=label icon=icon />
             <select
                 id=id
