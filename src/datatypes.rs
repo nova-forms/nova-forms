@@ -49,3 +49,4 @@ impl_datatype! {
     String => "type": "text";
     NonEmptyString => "type": "text", "minlength": "1";
 }
+

@@ -9,7 +9,6 @@ mod pages;
 mod icon;
 mod icon_button;
 mod icon_select;
-mod address;
 mod select;
 
 pub use file_upload::*;
@@ -23,5 +22,4 @@ pub use pages::*;
 pub use icon::*;
 pub use icon_button::*;
 pub use icon_select::*;
-pub use address::*;
 pub use select::*;

@@ -76,7 +76,6 @@ impl PdfGen {
         IV: IntoView + 'static,
     {
         use leptos::*;
-        use leptos_meta::provide_meta_context;
         use tokio::{fs::File, io::AsyncReadExt};
 
         let mut dir = std::env::current_dir().unwrap();

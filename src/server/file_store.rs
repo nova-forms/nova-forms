@@ -1,68 +1,78 @@
 use sqlx::{sqlite::SqliteConnectOptions, SqlitePool, Error};
 use std::str::FromStr;
-use crate::FileId;
+use crate::{FileId, FileInfo};
 
+#[derive(Clone)]
 pub struct FileStore {
     pool: SqlitePool,
 }
 
 impl FileStore {
     pub async fn new() -> Result<Self, Error> {
+        let mut path = std::env::current_dir().unwrap();
+        path.push("data.db");
+
+        println!("creating database under {}", path.display());
+
         let options = SqliteConnectOptions::from_str(&format!(
-            "sqlite:{}",
-            std::env::current_dir().unwrap().display()
+            "sqlite://{}",
+            path.display()
         ))?
         .create_if_missing(true);
 
         let pool = SqlitePool::connect_with(options).await?;
-
-        let mut transaction = pool.begin().await?;
 
         sqlx::query(
             r#"
             CREATE TABLE IF NOT EXISTS files (
                 uuid TEXT PRIMARY KEY,
                 file_name TEXT NOT NULL,
-                content_type: TEXT,
-                data BLOB NOT NULL,
+                content_type TEXT,
+                data BLOB NOT NULL
             )
         "#,
         )
-        .execute(&mut *transaction)
+        .execute(&pool)
         .await?;
-
-        transaction.commit().await?;
 
         Ok(Self {
             pool
         })
     }
 
-    pub fn insert(
+    pub async fn insert(
         &self,
-        file_name: String,
-        content_type: Option<String>,
+        file_info: FileInfo,
         data: Vec<u8>,
-    ) -> FileId {
+    ) -> Result<FileId, sqlx::Error> {
         let id = FileId::new();
 
-        /*sqlx::query(
+        sqlx::query(
             r#"
             INSERT INTO files (uuid, file_name, content_type, data)
             VALUES ($1, $2, $3, $4)
-        "#,
-        )
-        .bind(&id.0)
-        .bind(&file_name)
-        .bind(&content_type)
+        "#)
+        .bind(&id.to_string())
+        .bind(file_info.file_name())
+        .bind(file_info.content_type())
         .bind(&data)
         .execute(&self.pool)
-        .await?;*/
+        .await?;
 
-        id
+        Ok(id)
     }
-}
 
-struct Settings {
-    
+    pub async fn get(&self, id: FileId) -> Result<Option<(FileInfo, Vec<u8>)>, Error> {
+        let record: Option<(String, Option<String>, Vec<u8>)> = sqlx::query_as(
+            r#"
+            SELECT file_name, content_type, data
+            FROM files
+            WHERE uuid = $1
+        "#)
+        .bind(id.to_string())
+        .fetch_optional(&self.pool)
+        .await?;
+
+        Ok(record.map(|r| (FileInfo::new(r.0, r.1), r.2)))
+    }
 }

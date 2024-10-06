@@ -53,15 +53,15 @@ pub fn FileUpload(#[prop(into)] bind: QueryString) -> impl IntoView {
         <ul>
             <For
                 each=move || file_info.get().into_iter().enumerate()
-                key=|(_, file_info)| file_info.file_id()
+                key=|(_, (file_id, _))| file_id.clone()
                 // renders each item to a view
-                children=move |(i, file_info)| {
+                children=move |(i, (file_id, file_info))| {
                     let (qs, _file_name) = bind.clone().add_index(i).form_value::<String>();
 
                     view! {
                         <li>
                             { format!("{}", file_info.file_name) }
-                            <input type="hidden" name=qs value=file_info.file_id.to_string()></input>
+                            <input type="hidden" name=qs value=file_id.to_string()></input>
                         </li>
 
                     }
@@ -75,8 +75,9 @@ pub fn FileUpload(#[prop(into)] bind: QueryString) -> impl IntoView {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FileId(Uuid);
 
+#[cfg(feature = "ssr")]
 impl FileId {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         FileId(Uuid::new_v4())
     }
 }
@@ -114,42 +115,54 @@ impl<'de> Deserialize<'de> for FileId {
 
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct FileInfo {
-    file_id: FileId,
     file_name: String,
     content_type: Option<String>,
 }
 
 impl FileInfo {
-    pub fn new(file_id: FileId, file_name: String, content_type: Option<String>) -> Self {
-        FileInfo { file_id, file_name, content_type }
+    pub fn new(file_name: String, content_type: Option<String>) -> Self {
+        FileInfo { file_name, content_type }
     }
 
     pub fn file_name(&self) -> &str {
         &self.file_name
     }
 
-    pub fn file_id(&self) -> FileId {
-        self.file_id
+    pub fn content_type(&self) -> Option<&str> {
+        self.content_type.as_ref().map(|s| s.as_str())
     }
 }
 
 #[server(input = MultipartFormData)]
-async fn upload_file(data: MultipartData) -> Result<Vec<FileInfo>, ServerFnError> {
+async fn upload_file(data: MultipartData) -> Result<Vec<(FileId, FileInfo)>, ServerFnError> {
+    use crate::FileStore;
+
     let mut data = data.into_inner().unwrap();
-    let mut file_info = Vec::new();
+    let mut file_infos = Vec::new();
 
     while let Ok(Some(mut field)) = data.next_field().await {
         let content_type = field.content_type().map(|mime| mime.to_string());
         let file_name = field.file_name().expect("no filename on field").to_string();
+        let file_info = FileInfo::new(file_name, content_type);
+
+        let mut data = Vec::new();
+
         while let Ok(Some(chunk)) = field.chunk().await {
-            let len = chunk.len();
-            println!("[{file_name}]\t{len}");
+            data.extend_from_slice(&chunk);
+            //let len = chunk.len();
+            //println!("[{file_name}]\t{len}");
             //progress::add_chunk(&name, len).await;
             // in a real server function, you'd do something like saving the file here
         }
+        
 
-        file_info.push(FileInfo::new(FileId::new(), file_name, content_type));
+        let file_store = expect_context::<FileStore>();
+        let file_id = file_store.insert(file_info.clone(), data).await?;
+
+        println!("inserted file {} into database with id {}", file_info.file_name(), file_id);
+
+        file_infos.push((file_id, file_info));
     }
 
-    Ok(file_info)
+    Ok(file_infos)
 }
