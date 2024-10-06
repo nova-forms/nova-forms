@@ -1,6 +1,6 @@
-use sqlx::{sqlite::SqliteConnectOptions, SqlitePool, Error};
-use std::str::FromStr;
 use crate::{FileId, FileInfo};
+use sqlx::{sqlite::SqliteConnectOptions, Error, SqlitePool};
+use std::str::FromStr;
 
 #[derive(Clone)]
 pub struct FileStore {
@@ -14,11 +14,8 @@ impl FileStore {
 
         println!("creating database under {}", path.display());
 
-        let options = SqliteConnectOptions::from_str(&format!(
-            "sqlite://{}",
-            path.display()
-        ))?
-        .create_if_missing(true);
+        let options = SqliteConnectOptions::from_str(&format!("sqlite://{}", path.display()))?
+            .create_if_missing(true);
 
         let pool = SqlitePool::connect_with(options).await?;
 
@@ -35,23 +32,18 @@ impl FileStore {
         .execute(&pool)
         .await?;
 
-        Ok(Self {
-            pool
-        })
+        Ok(Self { pool })
     }
 
-    pub async fn insert(
-        &self,
-        file_info: FileInfo,
-        data: Vec<u8>,
-    ) -> Result<FileId, sqlx::Error> {
+    pub async fn insert(&self, file_info: FileInfo, data: Vec<u8>) -> Result<FileId, sqlx::Error> {
         let id = FileId::new();
 
         sqlx::query(
             r#"
             INSERT INTO files (uuid, file_name, content_type, data)
             VALUES ($1, $2, $3, $4)
-        "#)
+        "#,
+        )
         .bind(&id.to_string())
         .bind(file_info.file_name())
         .bind(file_info.content_type())
@@ -68,7 +60,8 @@ impl FileStore {
             SELECT file_name, content_type, data
             FROM files
             WHERE uuid = $1
-        "#)
+        "#,
+        )
         .bind(id.to_string())
         .fetch_optional(&self.pool)
         .await?;

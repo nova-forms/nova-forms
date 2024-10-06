@@ -1,5 +1,6 @@
 use ev::SubmitEvent;
 use leptos::*;
+use leptos_i18n::*;
 use leptos_router::*;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use server_fn::{
@@ -7,9 +8,10 @@ use server_fn::{
 };
 use std::{fmt::Debug, marker::PhantomData, str::FromStr};
 use thiserror::Error;
-use leptos_i18n::*;
 
-use crate::{FormDataSerialized, IconButton, IconSelect, Modal, ModalKind, PagesContext, QueryString};
+use crate::{
+    FormDataSerialized, IconButton, IconSelect, Modal, ModalKind, PagesContext, QueryString,
+};
 
 #[derive(Error, Debug, Clone, Copy)]
 enum SubmitError {
@@ -47,7 +49,6 @@ where
     <L as FromStr>::Err: Debug,
     K: LocaleKeys<Locale = L> + 'static,
 {
-
     let form_data = FormDataSerialized::from(form_data);
 
     provide_context(bind);
@@ -57,14 +58,12 @@ where
     let (submit_state, set_submit_state) = create_signal(SubmitState::Initial);
 
     let on_submit_value = on_submit.value();
-    create_effect(move |_| {
-        match on_submit_value.get() {
-            Some(Ok(_)) => set_submit_state.set(SubmitState::Success),
-            Some(Err(_)) => set_submit_state.set(SubmitState::Error(SubmitError::ServerError)),
-            None => {}
-        }
+    create_effect(move |_| match on_submit_value.get() {
+        Some(Ok(_)) => set_submit_state.set(SubmitState::Success),
+        Some(Err(_)) => set_submit_state.set(SubmitState::Error(SubmitError::ServerError)),
+        None => {}
     });
-   
+
     let version = on_submit.version();
     let value = on_submit.value();
 
@@ -86,7 +85,12 @@ where
             }
 
             // Do not submit the form if the submit button is not the one that was clicked.
-            let do_submit = ev.submitter().unwrap().get_attribute("type").map(|attr| attr == "submit").unwrap_or(false);
+            let do_submit = ev
+                .submitter()
+                .unwrap()
+                .get_attribute("type")
+                .map(|attr| attr == "submit")
+                .unwrap_or(false);
             if !do_submit {
                 ev.prevent_default();
                 return;
@@ -99,7 +103,7 @@ where
                 ev.prevent_default();
                 return;
             }
- 
+
             ev.prevent_default();
 
             match ServFn::from_event(&ev) {
@@ -113,9 +117,7 @@ where
                          arguments: {err:?}"
                     );
                     batch(move || {
-                        value.set(Some(Err(ServerFnError::Serialization(
-                            err.to_string(),
-                        ))));
+                        value.set(Some(Err(ServerFnError::Serialization(err.to_string()))));
                         version.update(|n| *n += 1);
                     });
                 }
@@ -124,18 +126,18 @@ where
     };
 
     let (pages_context, set_pages_context) = create_signal(PagesContext::default());
-    
+
     provide_context((pages_context, set_pages_context));
 
     let children = children();
 
-    let pages = pages_context.get_untracked().pages()
+    let pages = pages_context
+        .get_untracked()
+        .pages()
         .iter()
-        .map(|tab| {
-            (tab.id.clone(), tab.label.clone())
-        })
+        .map(|tab| (tab.id.clone(), tab.label.clone()))
         .collect::<Vec<_>>();
-    
+
     let locales = L::get_all()
         .iter()
         .map(|locale| {
@@ -159,7 +161,7 @@ where
                     "IT" => "🇮🇹",
                     "ES" => "🇪🇸",
                     other => other,
-                }
+                },
                 None => match id.language.as_str() {
                     "en" => "🇺🇸",
                     "de" => "🇩🇪",
@@ -169,12 +171,19 @@ where
                     _ => "",
                 },
             };
-            (*locale, if region_str.is_empty() { format!("{}", language_str) } else { format!("{} {}", region_str, language_str) }.into())
+            (
+                *locale,
+                if region_str.is_empty() {
+                    format!("{}", language_str)
+                } else {
+                    format!("{} {}", region_str, language_str)
+                }
+                .into(),
+            )
         })
         .collect::<Vec<_>>();
-    
 
-    view! {    
+    view! {
         <form id="nova-form" action="" on:submit=on_submit_inner class=move || if preview_mode.get() { "hidden" } else { "edit" }>
             {children}
             <input type="hidden" name="meta_data[locale]" value={move || i18n.get_locale().to_string()} />
@@ -300,7 +309,7 @@ where
 
             <IconButton button_type="submit" label="Submit" icon="send" form="nova-form"/>
 
-        
+
         </aside>
 
         { move || match submit_state.get() {
@@ -321,7 +330,7 @@ where
                 </Modal>
             }.into_view(),
         } }
-        
+
 
         /*<IconButton label="Download" icon="download" on:click=move |_| {
             /*web_sys::window().and_then(|w| w.print().ok());*/
@@ -339,7 +348,7 @@ where
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MetaData {
-    pub locale: String
+    pub locale: String,
 }
 
 #[macro_export]
@@ -363,12 +372,12 @@ macro_rules! init_nova_forms {
                 <I18nContextProvider>
                     {
                         let i18n = use_i18n();
-                        
+
                         // Sets the locale from the meta data.
                         if let Some(meta_data) = meta_data {
                             i18n.set_locale(i18n::Locale::from_str(meta_data.locale.as_str()).unwrap());
                         }
-                        
+
                         view! {
                             <FormContainer title=t!(i18n, nova_forms) subtitle=t!(i18n, demo_form) logo="/logo.png">
                                 {children()}

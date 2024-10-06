@@ -37,7 +37,11 @@ impl PagesContext {
     }
 
     pub(crate) fn is_selected(&self, id: TabId) -> bool {
-        self.tabs.iter().position(|t| t.id == id).map(|idx| idx == self.selected).unwrap_or(false)
+        self.tabs
+            .iter()
+            .position(|t| t.id == id)
+            .map(|idx| idx == self.selected)
+            .unwrap_or(false)
     }
 
     pub(crate) fn is_first_selected(&self) -> bool {
@@ -71,7 +75,9 @@ impl PagesContext {
     }
 
     pub(crate) fn selected(&self) -> Option<TabId> {
-        self.tabs.get(self.selected).map(|tab_data| tab_data.id.clone())
+        self.tabs
+            .get(self.selected)
+            .map(|tab_data| tab_data.id.clone())
     }
 
     pub(crate) fn pages(&self) -> &[TabData] {
@@ -83,7 +89,7 @@ impl PagesContext {
 #[component]
 pub fn Pages(children: Children) -> impl IntoView {
     let (pages_context, set_pages_context) = create_signal(PagesContext::default());
-    
+
     provide_context((pages_context, set_pages_context));
 
     let children = children();
@@ -91,7 +97,7 @@ pub fn Pages(children: Children) -> impl IntoView {
     view! {
         <div class="pages">
             <nav>
-                <For 
+                <For
                     each=move || pages_context.get().tabs.clone().into_iter().enumerate()
                     key=|(_, tab)| tab.id
                     children = move |(_i, tab)| {
@@ -117,16 +123,18 @@ pub fn Pages(children: Children) -> impl IntoView {
 */
 
 #[component]
-pub fn Page(
-    id: &'static str,
-    #[prop(into)] label: TextProp,
-    children: Children
-) -> impl IntoView {
+pub fn Page(id: &'static str, #[prop(into)] label: TextProp, children: Children) -> impl IntoView {
     let id = TabId(Cow::Borrowed(id));
 
-    let (pages_context, set_pages_context) = expect_context::<(ReadSignal<PagesContext>, WriteSignal<PagesContext>)>();
+    let (pages_context, set_pages_context) =
+        expect_context::<(ReadSignal<PagesContext>, WriteSignal<PagesContext>)>();
 
-    set_pages_context.update(|pages_context| pages_context.register(TabData { id: id.clone(), label }));
+    set_pages_context.update(|pages_context| {
+        pages_context.register(TabData {
+            id: id.clone(),
+            label,
+        })
+    });
 
     view! {
         <div class=move || if pages_context.get().is_selected(id.clone()) { "page selected" } else { "page hidden" } >

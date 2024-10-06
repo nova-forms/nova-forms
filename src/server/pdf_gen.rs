@@ -1,3 +1,4 @@
+use leptos::IntoView;
 use std::{
     path::PathBuf,
     process::{ExitStatus, Stdio},
@@ -6,7 +7,6 @@ use std::{
 use thiserror::Error;
 use tokio::{fs::File, io::AsyncWriteExt, process::Command};
 use uuid::Uuid;
-use leptos::IntoView;
 
 #[derive(Clone)]
 pub struct PdfGen {
@@ -66,11 +66,8 @@ impl PdfGen {
 
         Ok(output_path)
     }
-    
-    pub async fn render_form<F, IV>(
-        &self,
-        form: F,
-    ) -> Result<PathBuf, Error>
+
+    pub async fn render_form<F, IV>(&self, form: F) -> Result<PathBuf, Error>
     where
         F: FnOnce() -> IV + Send + 'static,
         IV: IntoView + 'static,

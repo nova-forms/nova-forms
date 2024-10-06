@@ -17,7 +17,7 @@ where
     V: FromStr + ToString + Eq + Hash + Clone + 'static,
     <V as FromStr>::Err: Debug,
     F: Fn(V) + Copy + 'static,
-    G: Fn() -> V + Copy + 'static
+    G: Fn() -> V + Copy + 'static,
 {
     let options = view! {
         <For
@@ -30,17 +30,17 @@ where
             }
         />
     };
-    
+
     view! {
         <label class="ui icon-select button" for=id.clone() >
             <Icon label=label icon=icon />
             <select
                 id=id
-                on:change=move |ev| { 
+                on:change=move |ev| {
                     let value = event_target_value(&ev);
                     let value = V::from_str(&value).unwrap();
                     on_change(value)
-                } 
+                }
                 prop:value=move || value().to_string()
                 name="language"
             >

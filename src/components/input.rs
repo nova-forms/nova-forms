@@ -20,7 +20,13 @@ where
         .fold(html::input(), |el, (name, value)| el.attr(name, value))
         .attr("id", qs.to_string())
         .attr("name", qs.to_string())
-        .attr("value", move || value.map(|value| value.get()).flatten().or_else(|| form_value.clone().ok()).map(|value| value.to_string()))
+        .attr("value", move || {
+            value
+                .map(|value| value.get())
+                .flatten()
+                .or_else(|| form_value.clone().ok())
+                .map(|value| value.to_string())
+        })
         .attr("placeholder", placeholder.as_ref().map(T::to_string))
         .on(ev::input, move |ev| {
             set_error.set(T::validate(event_target_value(&ev)));

@@ -1,4 +1,8 @@
-use std::{fmt::{Debug, Display}, hash::Hash, str::FromStr};
+use std::{
+    fmt::{Debug, Display},
+    hash::Hash,
+    str::FromStr,
+};
 
 use leptos::*;
 
@@ -13,9 +17,8 @@ where
     <V as FromStr>::Err: Debug,
     D: Display + Clone + 'static,
     F: Fn(V) + Copy + 'static,
-    G: Fn() -> V + Copy + 'static
+    G: Fn() -> V + Copy + 'static,
 {
-
     let options = view! {
         <For
             each=move || values.clone()
@@ -27,14 +30,14 @@ where
             }
         />
     };
-    
+
     view! {
         <select
-            on:change=move |ev| { 
+            on:change=move |ev| {
                 let value = event_target_value(&ev);
                 let value = V::from_str(&value).unwrap();
                 on_change(value)
-            } 
+            }
             prop:value=move || value().to_string()
             name="language"
         >

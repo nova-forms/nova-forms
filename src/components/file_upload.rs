@@ -121,7 +121,10 @@ pub struct FileInfo {
 
 impl FileInfo {
     pub fn new(file_name: String, content_type: Option<String>) -> Self {
-        FileInfo { file_name, content_type }
+        FileInfo {
+            file_name,
+            content_type,
+        }
     }
 
     pub fn file_name(&self) -> &str {
@@ -154,12 +157,15 @@ async fn upload_file(data: MultipartData) -> Result<Vec<(FileId, FileInfo)>, Ser
             //progress::add_chunk(&name, len).await;
             // in a real server function, you'd do something like saving the file here
         }
-        
 
         let file_store = expect_context::<FileStore>();
         let file_id = file_store.insert(file_info.clone(), data).await?;
 
-        println!("inserted file {} into database with id {}", file_info.file_name(), file_id);
+        println!(
+            "inserted file {} into database with id {}",
+            file_info.file_name(),
+            file_id
+        );
 
         file_infos.push((file_id, file_info));
     }

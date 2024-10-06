@@ -13,7 +13,7 @@ pub fn Modal(
     kind: ModalKind,
     #[prop(into)] title: TextProp,
     #[prop(into)] close: Callback<(), ()>,
-    children: Children
+    children: Children,
 ) -> impl IntoView {
     view! {
         <div class="modal">
