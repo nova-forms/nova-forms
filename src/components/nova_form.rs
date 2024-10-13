@@ -10,7 +10,7 @@ use std::{fmt::Debug, marker::PhantomData, str::FromStr};
 use thiserror::Error;
 
 use crate::{
-    FormDataSerialized, IconButton, IconSelect, Modal, ModalKind, PagesContext, QueryString,
+    FormDataSerialized, IconButton, IconSelect, InputsContext, Modal, ModalKind, PagesContext, QueryString
 };
 
 #[derive(Error, Debug, Clone, Copy)]
@@ -34,6 +34,7 @@ pub fn NovaForm<F, ServFn, L, K>(
     #[prop(optional)] form_data: F,
     on_submit: Action<ServFn, Result<(), ServerFnError>>,
     #[prop(into)] bind: QueryString,
+    #[prop(into)] bind_meta_data: QueryString,
     #[prop(optional)] _arg: PhantomData<ServFn>,
     i18n: I18nContext<L, K>,
     children: Children,
@@ -49,10 +50,10 @@ where
     <L as FromStr>::Err: Debug,
     K: LocaleKeys<Locale = L> + 'static,
 {
-    let form_data = FormDataSerialized::from(form_data);
+    let form_data_serialized = FormDataSerialized::from(form_data);
 
     provide_context(bind);
-    provide_context(form_data.clone());
+    provide_context(form_data_serialized.clone());
 
     let (preview_mode, set_preview_mode) = create_signal(false);
     let (submit_state, set_submit_state) = create_signal(SubmitState::Initial);
@@ -64,7 +65,6 @@ where
         None => {}
     });
 
-    let version = on_submit.version();
     let value = on_submit.value();
 
     let on_submit_inner = {
@@ -72,6 +72,7 @@ where
             if ev.default_prevented() {
                 return;
             }
+            ev.prevent_default();
 
             // <button formmethod="dialog"> should *not* dispatch the action, but should be allowed to
             // just bubble up and close the <dialog> naturally
@@ -92,7 +93,6 @@ where
                 .map(|attr| attr == "submit")
                 .unwrap_or(false);
             if !do_submit {
-                ev.prevent_default();
                 return;
             }
 
@@ -100,11 +100,9 @@ where
             if let Err(err) = data {
                 println!("error: {err}");
                 set_submit_state.set(SubmitState::Error(SubmitError::ValidationError));
-                ev.prevent_default();
                 return;
             }
 
-            ev.prevent_default();
 
             match ServFn::from_event(&ev) {
                 Ok(new_input) => {
@@ -118,16 +116,17 @@ where
                     );
                     batch(move || {
                         value.set(Some(Err(ServerFnError::Serialization(err.to_string()))));
-                        version.update(|n| *n += 1);
                     });
                 }
             }
         }
     };
-
+   
     let (pages_context, set_pages_context) = create_signal(PagesContext::default());
-
     provide_context((pages_context, set_pages_context));
+
+    let (inputs_context, set_inputs_context) = create_signal(InputsContext::default());
+    provide_context((inputs_context, set_inputs_context));
 
     let children = children();
 
@@ -183,16 +182,27 @@ where
         })
         .collect::<Vec<_>>();
 
+    let next_disabled = Signal::derive(move || {
+        inputs_context.get().has_errors_on_page(pages_context.get().selected().unwrap())
+    });
+    
     view! {
         <form id="nova-form" action="" on:submit=on_submit_inner class=move || if preview_mode.get() { "hidden" } else { "edit" }>
             {children}
-            <input type="hidden" name="meta_data[locale]" value={move || i18n.get_locale().to_string()} />
+            <input type="hidden" name=bind_meta_data.to_string() value={move || i18n.get_locale().to_string()} />
             <div>
                 <Show when=move || !pages_context.get().is_first_selected() >
                     <IconButton label="Previous Page" icon="arrow_back" on:click = move |_| set_pages_context.update(|pages_context| pages_context.prev()) />
                 </Show>
                 <Show when=move || !pages_context.get().is_last_selected() >
-                    <IconButton label="Next Page" icon="arrow_forward" on:click = move |_| set_pages_context.update(|pages_context| pages_context.next()) />
+                    <IconButton label="Next Page" icon="arrow_forward"
+                        on:click = move |_| {
+                            set_inputs_context.update(|inputs_context| {
+                                inputs_context.next_clicked(pages_context.get().selected().unwrap())
+                            });
+                            set_pages_context.update(|pages_context| pages_context.next());
+                        }
+                        disabled=next_disabled />
                 </Show>
                 /*<Show when=move || pages_context.get().is_last_selected() >
                     <IconButton button_type="submit" label="Submit" icon="send" />
@@ -200,7 +210,7 @@ where
             </div>
         </form>
 
-        <iframe class=move || if !preview_mode.get() { "hidden" } else { "edit" } id="preview"></iframe>
+        <iframe scrolling="no" class=move || if !preview_mode.get() { "hidden" } else { "edit" } id="preview"></iframe>
 
         <script>r#"
             function isIframe() {
@@ -216,14 +226,6 @@ where
                 // Populate the preview iframe with the current document.
                 const preview = document.getElementById("preview");
                 preview.srcdoc = document.documentElement.outerHTML;
-                
-                // Scale the preview to fit the screen.
-                (new MutationObserver(() => {
-                    resizeIframe();
-                })).observe(
-                    preview.contentWindow.document.body,
-                    { attributes: true, childList: true, subtree: true }
-                );
             }
 
             function preparePreviewInsideIframe() {
@@ -238,6 +240,7 @@ where
                 window.PagedConfig = {
                     after: (flow) => {
                         document.body.removeAttribute("style");
+                        parent.resizeIframe();
                     },
                 };
                 
@@ -258,14 +261,16 @@ where
                 let scaleFactor =  Math.min(1, (window.innerWidth / preview.contentWindow.document.body.scrollWidth));
                 if (scaleFactor < 1) {
                     preview.style.width = "210mm";
-                    preview.style.height = "297mm";
                     preview.style.transformOrigin = "top left";
                     preview.style.transform = "scale(" + scaleFactor + ")";
                     preview.style.marginRight = -210 * (1 - scaleFactor) + "mm";
-                    preview.style.marginBottom = -297 * (1 - scaleFactor) + "mm";
+                    preview.style.height = preview.contentWindow.document.body.scrollHeight + "px";
+                    preview.style.marginBottom = -preview.contentWindow.document.body.scrollHeight * (1 - scaleFactor) + "px";
                 } else {
                     preview.removeAttribute("style");
+                    preview.style.height = preview.contentWindow.document.body.scrollHeight + "px";
                 }
+
             }
         "#</script>
 
@@ -307,7 +312,11 @@ where
                 }
             }
 
-            <IconButton button_type="submit" label="Submit" icon="send" form="nova-form"/>
+            <IconButton
+                button_type="submit"
+                label="Submit"
+                icon="send"
+                form="nova-form" />
 
 
         </aside>
@@ -376,7 +385,7 @@ macro_rules! init_nova_forms {
                         // Sets the locale from the meta data.
                         if let Some(meta_data) = meta_data {
                             i18n.set_locale(i18n::Locale::from_str(meta_data.locale.as_str()).unwrap());
-                        }
+                        }                    
 
                         view! {
                             <FormContainer title=t!(i18n, nova_forms) subtitle=t!(i18n, demo_form) logo="/logo.png">

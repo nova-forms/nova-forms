@@ -46,15 +46,36 @@ impl QueryString {
         (curr_qs, curr_form_data)
     }
 
-    pub fn form_value<T: Datatype>(&self) -> (QueryString, Result<T, String>) {
+    pub fn form_value<T: Datatype>(&self) -> (QueryString, Result<T, T::Error>) {
         let form_data = expect_context::<FormDataSerialized>();
         let value = form_data
             .exact(&self)
-            .map(|value| T::validate(value))
+            .map(|value| T::from_str(&value))
             .unwrap_or_else(|| Ok(T::default()));
         let prefix_qs = expect_context::<QueryString>();
         let curr_qs = prefix_qs.join(self.clone());
         (curr_qs, value)
+    }
+
+    pub fn join(self, mut other: Self) -> Self {
+        let mut parts = self.0;
+        parts.append(&mut other.0);
+        QueryString(parts)
+    }
+
+    pub fn add(mut self, part: QueryStringPart) -> Self {
+        self.0.push(part);
+        self
+    }
+
+    pub fn add_index(mut self, index: usize) -> Self {
+        self.0.push(QueryStringPart::Index(index));
+        self
+    }
+
+    pub fn add_key<K: Into<String>>(mut self, key: K) -> Self {
+        self.0.push(QueryStringPart::Key(key.into()));
+        self
     }
 }
 
@@ -113,29 +134,6 @@ impl Display for QueryString {
             write!(f, "[{}]", part)?;
         }
         Ok(())
-    }
-}
-
-impl QueryString {
-    pub fn join(self, mut other: Self) -> Self {
-        let mut parts = self.0;
-        parts.append(&mut other.0);
-        QueryString(parts)
-    }
-
-    pub fn add(mut self, part: QueryStringPart) -> Self {
-        self.0.push(part);
-        self
-    }
-
-    pub fn add_index(mut self, index: usize) -> Self {
-        self.0.push(QueryStringPart::Index(index));
-        self
-    }
-
-    pub fn add_key<K: Into<String>>(mut self, key: K) -> Self {
-        self.0.push(QueryStringPart::Key(key.into()));
-        self
     }
 }
 
