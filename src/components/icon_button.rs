@@ -11,12 +11,6 @@ pub fn IconButton(
     #[prop(optional, into)] form: Option<String>,
     #[prop(optional, into)] disabled: Option<MaybeSignal<bool>>,
 ) -> impl IntoView {
-    logging::log!("init IconButton: disabled={:?}", disabled.map(|s| s.get()));
-
-    create_effect(move |_| {
-        logging::log!("IconButton: disabled={:?}", disabled.map(|s| s.get()));
-    });
-
     view! {
         <button class="ui icon-button" disabled=move || disabled.map(|s| s.get()).unwrap_or_default() type=button_type.unwrap_or("button".to_owned()) form=form id=id.unwrap_or_default() >
             <Icon label=label icon=icon />

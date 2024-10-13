@@ -10,7 +10,7 @@ use std::{fmt::Debug, marker::PhantomData, str::FromStr};
 use thiserror::Error;
 
 use crate::{
-    FormDataSerialized, IconButton, IconSelect, InputsContext, Modal, ModalKind, PagesContext, QueryString
+    FormDataSerialized, IconButton, IconSelect, InputsContext, Modal, ModalKind, PagesContext, QueryString, TriggerValidation
 };
 
 #[derive(Error, Debug, Clone, Copy)]
@@ -57,6 +57,7 @@ where
 
     let (preview_mode, set_preview_mode) = create_signal(false);
     let (submit_state, set_submit_state) = create_signal(SubmitState::Initial);
+    let (trigger_validation, set_trigger_validation) = create_signal(TriggerValidation::None);
 
     let on_submit_value = on_submit.value();
     create_effect(move |_| match on_submit_value.get() {
@@ -65,67 +66,11 @@ where
         None => {}
     });
 
-    let value = on_submit.value();
-
-    let on_submit_inner = {
-        move |ev: SubmitEvent| {
-            if ev.default_prevented() {
-                return;
-            }
-            ev.prevent_default();
-
-            // <button formmethod="dialog"> should *not* dispatch the action, but should be allowed to
-            // just bubble up and close the <dialog> naturally
-            let is_dialog = ev
-                .submitter()
-                .and_then(|el| el.get_attribute("formmethod"))
-                .as_deref()
-                == Some("dialog");
-            if is_dialog {
-                return;
-            }
-
-            // Do not submit the form if the submit button is not the one that was clicked.
-            let do_submit = ev
-                .submitter()
-                .unwrap()
-                .get_attribute("type")
-                .map(|attr| attr == "submit")
-                .unwrap_or(false);
-            if !do_submit {
-                return;
-            }
-
-            let data = ServFn::from_event(&ev);
-            if let Err(err) = data {
-                println!("error: {err}");
-                set_submit_state.set(SubmitState::Error(SubmitError::ValidationError));
-                return;
-            }
-
-
-            match ServFn::from_event(&ev) {
-                Ok(new_input) => {
-                    set_submit_state.set(SubmitState::Pending);
-                    on_submit.dispatch(new_input);
-                }
-                Err(err) => {
-                    logging::error!(
-                        "Error converting form field into server function \
-                         arguments: {err:?}"
-                    );
-                    batch(move || {
-                        value.set(Some(Err(ServerFnError::Serialization(err.to_string()))));
-                    });
-                }
-            }
-        }
-    };
-   
+    
     let (pages_context, set_pages_context) = create_signal(PagesContext::default());
     provide_context((pages_context, set_pages_context));
 
-    let (inputs_context, set_inputs_context) = create_signal(InputsContext::default());
+    let (inputs_context, set_inputs_context) = create_signal(InputsContext::new(trigger_validation));
     provide_context((inputs_context, set_inputs_context));
 
     let children = children();
@@ -183,8 +128,74 @@ where
         .collect::<Vec<_>>();
 
     let next_disabled = Signal::derive(move || {
-        inputs_context.get().has_errors_on_page(pages_context.get().selected().unwrap())
+        inputs_context.get().has_errors_on_page(pages_context.get().selected().expect("page index out of bounds"))
     });
+    let submit_disabled = Signal::derive(move || {
+        inputs_context.get().has_errors()
+    });
+
+    let value = on_submit.value();
+
+    let on_submit_inner = {
+        move |ev: SubmitEvent| {
+            if ev.default_prevented() {
+                return;
+            }
+            ev.prevent_default();
+
+            // <button formmethod="dialog"> should *not* dispatch the action, but should be allowed to
+            // just bubble up and close the <dialog> naturally
+            let is_dialog = ev
+                .submitter()
+                .and_then(|el| el.get_attribute("formmethod"))
+                .as_deref()
+                == Some("dialog");
+            if is_dialog {
+                return;
+            }
+
+            // Do not submit the form if the submit button is not the one that was clicked.
+            let do_submit = ev
+                .submitter()
+                .unwrap()
+                .get_attribute("type")
+                .map(|attr| attr == "submit")
+                .unwrap_or(false);
+            if !do_submit {
+                return;
+            }
+
+            set_trigger_validation.set(TriggerValidation::All);
+            if submit_disabled.get() {
+                return;
+            }
+
+            let data = ServFn::from_event(&ev);
+            if let Err(err) = data {
+                println!("error: {err}");
+                set_submit_state.set(SubmitState::Error(SubmitError::ValidationError));
+                return;
+            }
+
+
+            match ServFn::from_event(&ev) {
+                Ok(new_input) => {
+                    set_submit_state.set(SubmitState::Pending);
+                    on_submit.dispatch(new_input);
+                }
+                Err(err) => {
+                    logging::error!(
+                        "Error converting form field into server function \
+                         arguments: {err:?}"
+                    );
+                    batch(move || {
+                        value.set(Some(Err(ServerFnError::Serialization(err.to_string()))));
+                    });
+                }
+            }
+        }
+    };
+
     
     view! {
         <form id="nova-form" action="" on:submit=on_submit_inner class=move || if preview_mode.get() { "hidden" } else { "edit" }>
@@ -197,10 +208,11 @@ where
                 <Show when=move || !pages_context.get().is_last_selected() >
                     <IconButton label="Next Page" icon="arrow_forward"
                         on:click = move |_| {
-                            set_inputs_context.update(|inputs_context| {
-                                inputs_context.next_clicked(pages_context.get().selected().unwrap())
-                            });
-                            set_pages_context.update(|pages_context| pages_context.next());
+                            let curr_page = pages_context.get().selected().expect("page index out of bounds");
+                            set_trigger_validation.set(TriggerValidation::Page(curr_page.clone()));
+                            if !next_disabled.get() {
+                                set_pages_context.update(|pages_context| pages_context.next());
+                            }
                         }
                         disabled=next_disabled />
                 </Show>
@@ -281,7 +293,7 @@ where
                     label="Menu"
                     icon="menu"
                     values=pages.clone()
-                    value=move || pages_context.get().selected().unwrap()
+                    value=move || pages_context.get().selected().expect("page index out of bounds")
                     on_change=move |tab_id| set_pages_context.update(|pages_context| pages_context.select(tab_id)) />
             </Show>
 
@@ -316,7 +328,8 @@ where
                 button_type="submit"
                 label="Submit"
                 icon="send"
-                form="nova-form" />
+                form="nova-form"
+                disabled=submit_disabled />
 
 
         </aside>

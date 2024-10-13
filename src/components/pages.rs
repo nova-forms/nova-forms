@@ -27,17 +27,17 @@ impl FromStr for PageId {
 
 #[derive(Debug, Clone, Default)]
 pub(crate) struct PagesContext {
-    tabs: Vec<PageData>,
+    pages: Vec<PageData>,
     selected: usize,
 }
 
 impl PagesContext {
     pub(crate) fn register(&mut self, data: PageData) {
-        self.tabs.push(data);
+        self.pages.push(data);
     }
 
     pub(crate) fn is_selected(&self, id: PageId) -> bool {
-        self.tabs
+        self.pages
             .iter()
             .position(|t| t.id == id)
             .map(|idx| idx == self.selected)
@@ -45,15 +45,15 @@ impl PagesContext {
     }
 
     pub(crate) fn is_first_selected(&self) -> bool {
-        self.tabs.is_empty() || self.selected == 0
+        self.pages.is_empty() || self.selected == 0
     }
 
     pub(crate) fn is_last_selected(&self) -> bool {
-        self.tabs.is_empty() || self.selected == self.tabs.len() - 1
+        self.pages.is_empty() || self.selected == self.pages.len() - 1
     }
 
     pub(crate) fn next(&mut self) {
-        if self.selected + 1 < self.tabs.len() {
+        if self.selected + 1 < self.pages.len() {
             self.selected += 1;
         }
     }
@@ -65,23 +65,23 @@ impl PagesContext {
     }
 
     pub(crate) fn select(&mut self, id: PageId) {
-        if let Some(idx) = self.tabs.iter().position(|t| t.id == id) {
+        if let Some(idx) = self.pages.iter().position(|t| t.id == id) {
             self.selected = idx;
         }
     }
 
     pub(crate) fn len(&self) -> usize {
-        self.tabs.len()
+        self.pages.len()
     }
 
     pub(crate) fn selected(&self) -> Option<PageId> {
-        self.tabs
+        self.pages
             .get(self.selected)
             .map(|tab_data| tab_data.id.clone())
     }
 
     pub(crate) fn pages(&self) -> &[PageData] {
-        self.tabs.as_slice()
+        self.pages.as_slice()
     }
 }
 
