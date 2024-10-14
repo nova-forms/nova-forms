@@ -25,7 +25,6 @@ impl From<Infallible> for EmailError {
     }
 }
 
-
 custom_datatype!{
     fn validate(input: String) -> Result<Email, EmailError> {
         if !EMAIL_REGEX.is_match(&input) {

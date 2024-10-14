@@ -17,6 +17,8 @@ use crate::{
 enum SubmitError {
     #[error("the form contains errors")]
     ValidationError,
+    #[error("the form contains errors")]
+    ParseError,
     #[error("a server error occurred")]
     ServerError,
 }
@@ -127,13 +129,6 @@ where
         })
         .collect::<Vec<_>>();
 
-    let next_disabled = Signal::derive(move || {
-        inputs_context.get().has_errors_on_page(pages_context.get().selected().expect("page index out of bounds"))
-    });
-    let submit_disabled = Signal::derive(move || {
-        inputs_context.get().has_errors()
-    });
-
     let value = on_submit.value();
 
     let on_submit_inner = {
@@ -165,15 +160,18 @@ where
                 return;
             }
 
+            logging::log!("triggering validation");
             set_trigger_validation.set(TriggerValidation::All);
-            if submit_disabled.get() {
+            if inputs_context.get().has_errors() {
+                logging::log!("inputs have errors: {:?}", inputs_context.get());
+                set_submit_state.set(SubmitState::Error(SubmitError::ValidationError));
                 return;
             }
-
+            
             let data = ServFn::from_event(&ev);
             if let Err(err) = data {
-                println!("error: {err}");
-                set_submit_state.set(SubmitState::Error(SubmitError::ValidationError));
+                logging::log!("error: {err}, {:?}", inputs_context.get());
+                set_submit_state.set(SubmitState::Error(SubmitError::ParseError));
                 return;
             }
 
@@ -200,25 +198,18 @@ where
     view! {
         <form id="nova-form" action="" on:submit=on_submit_inner class=move || if preview_mode.get() { "hidden" } else { "edit" }>
             {children}
-            <input type="hidden" name=bind_meta_data.to_string() value={move || i18n.get_locale().to_string()} />
+            <input type="hidden" name=bind_meta_data.add_key("locale") value={move || i18n.get_locale().to_string()} />
             <div>
-                <Show when=move || !pages_context.get().is_first_selected() >
-                    <IconButton label="Previous Page" icon="arrow_back" on:click = move |_| set_pages_context.update(|pages_context| pages_context.prev()) />
-                </Show>
-                <Show when=move || !pages_context.get().is_last_selected() >
-                    <IconButton label="Next Page" icon="arrow_forward"
-                        on:click = move |_| {
-                            let curr_page = pages_context.get().selected().expect("page index out of bounds");
-                            set_trigger_validation.set(TriggerValidation::Page(curr_page.clone()));
-                            if !next_disabled.get() {
-                                set_pages_context.update(|pages_context| pages_context.next());
-                            }
-                        }
-                        disabled=next_disabled />
-                </Show>
-                /*<Show when=move || pages_context.get().is_last_selected() >
-                    <IconButton button_type="submit" label="Submit" icon="send" />
-                </Show>*/
+                <IconButton
+                    label="Previous Page"
+                    icon="arrow_back"
+                    on:click = move |_| set_pages_context.update(|pages_context| pages_context.prev())
+                    disabled=Signal::derive(move || pages_context.get().is_first_selected()) />
+                <IconButton label="Next Page" icon="arrow_forward"
+                    on:click = move |_| {    
+                        set_pages_context.update(|pages_context| pages_context.next());
+                     }
+                    disabled=Signal::derive(move || pages_context.get().is_last_selected()) />
             </div>
         </form>
 
@@ -328,8 +319,7 @@ where
                 button_type="submit"
                 label="Submit"
                 icon="send"
-                form="nova-form"
-                disabled=submit_disabled />
+                form="nova-form" />
 
 
         </aside>

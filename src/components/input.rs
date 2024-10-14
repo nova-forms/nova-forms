@@ -56,7 +56,7 @@ impl InputsContext {
     }
 
     pub fn set_error(&mut self, qs: &QueryString, has_error: bool) {
-        self.inputs.get_mut(qs).unwrap().has_error = has_error;
+        self.inputs.get_mut(qs).expect("cannot set error").has_error = has_error;
     }
 
     pub fn has_errors(&self) -> bool {
@@ -81,23 +81,41 @@ where
 {
     let (qs, form_value) = bind.form_value::<T>();
 
-    let (show_error, set_show_error) = create_signal(value.get_untracked()
-        .or_else(|| form_value.clone().ok())
-        .is_some());
+    let (show_error, set_show_error) = create_signal(false);
 
-    let (value, set_value) = create_signal(value.get_untracked()
+    let (raw_value, set_raw_value) = create_signal(value.get_untracked()
         .or_else(|| form_value.clone().ok())
         .map(|v| v.to_string())
         .unwrap_or_default());
 
- 
+    create_effect(move |_| {
+        if let Some(value) = value.get() {
+            set_raw_value.set(value.to_string());
+            set_show_error.set(true);
+        }
+    });
+
     let (pages_context, _) = expect_context::<(ReadSignal<PagesContext>, WriteSignal<PagesContext>)>();
     let (inputs_context, set_inputs_context) = expect_context::<(ReadSignal<InputsContext>, WriteSignal<InputsContext>)>();
 
-    let page_id = pages_context.get_untracked().pages().last().unwrap().id.clone();
-    
+    let page_id = pages_context.get_untracked().pages().last().expect("cannot get page").id.clone();
+
+    let page_id_clone = page_id.clone();
+    create_effect(move |_| {
+        let trigger_validation = inputs_context.get().trigger_validation.get();
+        let show_error = match trigger_validation {
+            TriggerValidation::None => false,
+            TriggerValidation::All => true,
+            TriggerValidation::Page(ref page_id) => page_id == &page_id_clone,
+        };
+
+        if show_error {
+            set_show_error.set(true);
+        }
+    });
+
     let parsed_value = Signal::derive(move || {
-        T::from_str(&value.get())
+        T::from_str(&raw_value.get())
     });
     
     set_inputs_context.update(|inputs_context| inputs_context.register(qs.clone(), InputData {
@@ -105,23 +123,6 @@ where
         label: label.clone(),
         has_error: false,
     }));
-
-    let page_id_clone: PageId = page_id.clone();
-    create_effect(move |_| {
-        let do_trigger = match inputs_context.get().trigger_validation.get() {
-            TriggerValidation::None => false,
-            TriggerValidation::All => true,
-            TriggerValidation::Page(trigger_page_id) => trigger_page_id == page_id_clone,
-        };
-
-        logging::log!("trigger_validation: {}", do_trigger);
-
-        if do_trigger {
-            set_value.update(|value| {})
-        }
-    });
-
-
 
     let qs_clone = qs.clone();
     create_effect(move |_| {
@@ -131,25 +132,24 @@ where
         });
     });
 
-
     let input_elem = T::attributes()
         .into_iter()
         .fold(html::input(), |el, (name, value)| el.attr(name, value))
         .attr("id", qs.to_string())
         .attr("name", qs.to_string())
         .attr("value", move || {
-            value.get()
+            raw_value.get()
         })
         .attr("placeholder", placeholder.as_ref().map(T::to_string))
         .on(ev::input, move |ev| {
-            set_value.set(event_target_value(&ev));
+            set_raw_value.set(event_target_value(&ev));
             set_show_error.set(true);
         });
 
     let translate_errors = use_context::<Translate<T::Error>>();
 
     view! {
-        <div class="field" class:error=move || parsed_value.get().is_err() && show_error.get() >
+        <div class="field" class:error=move || parsed_value.get().is_err() && show_error.get() class:ok=move || parsed_value.get().is_ok() && show_error.get() >
             <label for=qs.to_string()>{label}</label>
             { input_elem }
             {
