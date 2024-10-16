@@ -1,72 +1,82 @@
-use std::{borrow::Cow, collections::HashMap, str::FromStr};
-
 use leptos::*;
-
-use crate::{Datatype, PagesContext, QueryString, Translate};
-
+use crate::{Datatype, PageContext, QueryString, TranslationProvider};
 use super::PageId;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) enum TriggerValidation {
-    None,
-    All,
-    Page(PageId),
-}
+mod context {
+    use std::{borrow::Cow, collections::HashMap, str::FromStr};
+    use leptos::*;
+    use crate::QueryString;
+    use super::PageId;
 
-#[derive(Debug, Clone)]
-pub(crate) struct InputData {
-    pub(crate) page_id: PageId,
-    pub(crate) label: TextProp,
-    pub(crate) has_error: bool,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub(crate) struct InputId(Cow<'static, str>);
-
-impl ToString for InputId {
-    fn to_string(&self) -> String {
-        self.0.to_string()
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    pub(crate) enum TriggerValidation {
+        None,
+        All,
+        Page(PageId),
     }
-}
-
-impl FromStr for InputId {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(InputId(Cow::Owned(s.to_owned())))
+    
+    #[derive(Debug, Clone)]
+    pub(crate) struct InputData {
+        pub(crate) page_id: PageId,
+        pub(crate) label: TextProp,
+        pub(crate) has_error: bool,
     }
-}
-
-#[derive(Debug, Clone)]
-pub(crate) struct InputsContext {
-    inputs: HashMap<QueryString, InputData>,
-    pub trigger_validation: ReadSignal<TriggerValidation>,
-}
-
-impl InputsContext {
-    pub fn new(trigger_validation: ReadSignal<TriggerValidation>) -> Self {
-        Self {
-            inputs: HashMap::new(),
-            trigger_validation,
+    
+    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
+    pub(crate) struct InputId(Cow<'static, str>);
+    
+    impl ToString for InputId {
+        fn to_string(&self) -> String {
+            self.0.to_string()
         }
     }
-
-    pub fn register(&mut self, qs: QueryString, data: InputData) {
-        self.inputs.insert(qs, data);
+    
+    impl FromStr for InputId {
+        type Err = ();
+    
+        fn from_str(s: &str) -> Result<Self, Self::Err> {
+            Ok(InputId(Cow::Owned(s.to_owned())))
+        }
     }
-
-    pub fn set_error(&mut self, qs: &QueryString, has_error: bool) {
-        self.inputs.get_mut(qs).expect("cannot set error").has_error = has_error;
+    
+    #[derive(Debug, Clone)]
+    pub(crate) struct InputsContext {
+        inputs: HashMap<QueryString, InputData>,
+        pub trigger_validation: ReadSignal<TriggerValidation>,
     }
-
-    pub fn has_errors(&self) -> bool {
-        self.inputs.values().any(|data| data.has_error)
+    
+    impl InputsContext {
+        pub fn new(trigger_validation: ReadSignal<TriggerValidation>) -> Self {
+            Self {
+                inputs: HashMap::new(),
+                trigger_validation,
+            }
+        }
+    
+        pub fn register(&mut self, qs: QueryString, data: InputData) {
+            self.inputs.insert(qs, data);
+        }
+    
+        pub fn deregister(&mut self, qs: &QueryString) {
+            self.inputs.remove(qs);
+        }
+    
+        pub fn set_error(&mut self, qs: &QueryString, has_error: bool) {
+            self.inputs.get_mut(qs).expect("cannot set error").has_error = has_error;
+        }
+    
+        pub fn has_errors(&self) -> bool {
+            self.inputs.values().any(|data| data.has_error)
+        }
+    
+        pub fn has_errors_on_page(&self, page_id: PageId) -> bool {
+            self.inputs.values().any(|data| data.page_id == page_id && data.has_error)
+        }
     }
-
-    pub fn has_errors_on_page(&self, page_id: PageId) -> bool {
-        self.inputs.values().any(|data| data.page_id == page_id && data.has_error)
-    }
+    
 }
+
+pub(crate) use context::*;
 
 
 #[component]
@@ -80,6 +90,7 @@ where
     T: Datatype,
 {
     let (qs, form_value) = bind.form_value::<T>();
+    logging::log!("form value for {} is '{}'", qs, form_value.as_ref().map(|v| v.to_string()).unwrap_or_default());
 
     let (show_error, set_show_error) = create_signal(false);
 
@@ -95,10 +106,10 @@ where
         }
     });
 
-    let (pages_context, _) = expect_context::<(ReadSignal<PagesContext>, WriteSignal<PagesContext>)>();
+    let page_context = expect_context::<PageContext>();
     let (inputs_context, set_inputs_context) = expect_context::<(ReadSignal<InputsContext>, WriteSignal<InputsContext>)>();
 
-    let page_id = pages_context.get_untracked().pages().last().expect("cannot get page").id.clone();
+    let page_id = page_context.id().clone();
 
     let page_id_clone = page_id.clone();
     create_effect(move |_| {
@@ -125,6 +136,11 @@ where
     }));
 
     let qs_clone = qs.clone();
+    on_cleanup(move || {
+        set_inputs_context.update(|inputs_context| inputs_context.deregister(&qs_clone));
+    });
+
+    let qs_clone = qs.clone();
     create_effect(move |_| {
         let qs = qs_clone.clone();
         set_inputs_context.update(move |inputs_context| {
@@ -146,7 +162,7 @@ where
             set_show_error.set(true);
         });
 
-    let translate_errors = use_context::<Translate<T::Error>>();
+    let translate_errors = use_context::<TranslationProvider<T::Error>>();
 
     view! {
         <div class="field" class:error=move || parsed_value.get().is_err() && show_error.get() class:ok=move || parsed_value.get().is_ok() && show_error.get() >

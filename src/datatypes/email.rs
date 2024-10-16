@@ -1,7 +1,7 @@
 use std::{cell::LazyCell, convert::Infallible};
 
 use thiserror::Error;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 use regex::Regex;
 
 use crate::custom_datatype;
@@ -10,7 +10,7 @@ const EMAIL_REGEX: LazyCell<Regex> = LazyCell::new(|| {
     Regex::new(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$").unwrap()
 });
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Serialize)]
 pub struct Email(String);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]

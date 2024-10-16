@@ -4,7 +4,7 @@ mod email;
 pub use non_empty_string::*;
 pub use email::*;
 
-use leptos::{Attribute, Oco, View};
+use leptos::{provide_context, Attribute, IntoView, Oco, View};
 use std::error::Error;
 use std::fmt::Display;
 use std::rc::Rc;
@@ -63,10 +63,10 @@ macro_rules! custom_datatype {
             }
         }
         
-        impl TryFrom<String> for $this {
+        impl TryFrom<<Self as $crate::CustomDatatype>::Inner> for $this {
             type Error = $err;
         
-            fn try_from(value: String) -> Result<Self, Self::Error> {
+            fn try_from(value: <Self as $crate::CustomDatatype>::Inner) -> Result<Self, Self::Error> {
                 <Self as $crate::CustomDatatype>::validate(value)
             }
         }
@@ -76,6 +76,16 @@ macro_rules! custom_datatype {
         
             fn deref(&self) -> &Self::Target {
                 &self.0
+            }
+        }
+
+        impl<'de> serde::Deserialize<'de> for $this {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                let value = <Self as $crate::CustomDatatype>::Inner::deserialize(deserializer)?;
+                <Self as $crate::CustomDatatype>::validate(value).map_err(serde::de::Error::custom)
             }
         }
         
@@ -111,19 +121,28 @@ where
 }
 
 #[derive(Clone)]
-pub struct Translate<T>(Rc<dyn Fn(T) -> View>);
+pub struct TranslationProvider<T>(Rc<dyn Fn(T) -> View>);
 
-impl<T> Translate<T> {
+impl<T> TranslationProvider<T> {
     pub fn t(&self, value: T) -> View {
         (self.0)(value)
     }
 }
 
-impl<T, F> From<F> for Translate<T>
+impl<T, F> From<F> for TranslationProvider<T>
 where
     F: Fn(T) -> View + 'static,
 {
     fn from(f: F) -> Self {
-        Translate(Rc::new(f))
+        TranslationProvider(Rc::new(f))
     }
+}
+
+pub fn provide_translation_context<F, T, V>(f: F)
+where
+    T: Clone + 'static,
+    V: IntoView + 'static,
+    F: Fn(T) -> V + Clone + 'static,
+{
+    provide_context(TranslationProvider::from(move |value | f(value).into_view()));
 }

@@ -2127,6 +2127,7 @@ dependencies = [
  "leptos_i18n",
  "leptos_meta",
  "leptos_router",
+ "percent-encoding",
  "regex",
  "reqwest",
  "serde",

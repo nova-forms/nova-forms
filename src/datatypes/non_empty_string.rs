@@ -1,11 +1,11 @@
 use std::convert::Infallible;
 
 use thiserror::Error;
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 use crate::custom_datatype;
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Serialize)]
 pub struct NonEmptyString(String);
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]

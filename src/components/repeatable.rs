@@ -28,10 +28,8 @@ where
                         }
                     }
                 />
+                <IconButton on:click = move |_| set_size.update(|i| *i -= 1) label="Remove" icon="remove" disabled=Signal::derive(move || size.get() == 0) />
                 <IconButton on:click = move |_| set_size.update(|i| *i += 1) label="Add" icon="add" />
-                <Show when=move || { size.get() > 0 } >
-                    <IconButton on:click = move |_| set_size.update(|i| *i -= 1) label="Remove" icon="remove" />
-                </Show>
             </div>
         </Group>
     }

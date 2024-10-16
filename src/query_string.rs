@@ -1,7 +1,8 @@
 use std::{collections::HashMap, fmt::Display};
 
-use leptos::{expect_context, Attribute, IntoAttribute, Oco};
+use leptos::*;
 use serde::Serialize;
+use percent_encoding::{percent_decode, percent_encode, NON_ALPHANUMERIC};
 
 use crate::Datatype;
 
@@ -154,7 +155,7 @@ impl FormDataSerialized {
             .into_iter()
             .map(|pair| {
                 pair.split_once("=")
-                    .map(|(k, v)| (QueryString::from(k), v.to_owned()))
+                    .map(|(k, v)| (QueryString::from(k), percent_decode(v.as_bytes()).decode_utf8_lossy().to_string()))
                     .unwrap_or_else(|| (QueryString::from(pair), String::new()))
             })
             .collect();
@@ -164,12 +165,13 @@ impl FormDataSerialized {
     pub fn to_query_string(&self) -> String {
         self.0
             .iter()
-            .map(|(k, v)| format!("{}={}", k, v))
+            .map(|(k, v)| format!("{}={}", k, percent_encode(v.as_bytes(), NON_ALPHANUMERIC)))
             .collect::<Vec<_>>()
             .join("&")
     }
 
     pub fn exact(&self, key: &QueryString) -> Option<String> {
+        logging::log!("exact: {:?}, values are {:?}", key, self.0);
         self.0.get(&key).map(|s| s.to_owned())
     }
 

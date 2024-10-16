@@ -81,7 +81,7 @@ where
         .get_untracked()
         .pages()
         .iter()
-        .map(|tab| (tab.id.clone(), tab.label.clone()))
+        .map(|page| (page.id(), page.label().clone()))
         .collect::<Vec<_>>();
 
     let locales = L::get_all()
