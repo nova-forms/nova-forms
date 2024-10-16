@@ -5,6 +5,7 @@ pub use email::*;
 pub use non_empty_string::*;
 
 use leptos::{provide_context, Attribute, IntoView, Oco, View};
+use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::Display;
 use std::rc::Rc;
@@ -18,8 +19,8 @@ pub trait Datatype: Display + Default + Clone + FromStr<Err = Self::Error> + 'st
     }
 }
 
-macro_rules! datatype {
-    ( $( $t:ty => $($name:literal: $val:literal),* $(,)? );* $(;)? ) => {
+macro_rules! impl_datatypes {
+    ( $( $t:ty where $($name:literal: $val:literal),* $(,)? );* $(;)? ) => {
         $(
             impl Datatype for $t {
                 type Error = <$t as FromStr>::Err;
@@ -32,23 +33,23 @@ macro_rules! datatype {
     };
 }
 
-datatype! {
-    u8 => "type": "number", "step": "1", "min": "0", "max": "255";
-    u16 => "type": "number", "step": "1", "min": "0", "max": "65535";
-    u32 => "type": "number", "step": "1", "min": "0", "max": "4294967295";
-    u64 => "type": "number", "step": "1", "min": "0", "max": "18446744073709551615";
-    u128 => "type": "number", "step": "1", "min": "0", "max": "340282366920938463463374607431768211455";
-    i8 => "type": "number", "step": "1", "min": "-128", "max": "127";
-    i16 => "type": "number", "step": "1", "min": "-32768", "max": "32767";
-    i32 => "type": "number", "step": "1", "min": "-2147483648", "max": "2147483647";
-    i64 => "type": "number", "step": "1", "min": "-9223372036854775808", "max": "9223372036854775807";
-    i128 => "type": "number", "step": "1", "min": "-170141183460469231731687303715884105728", "max": "170141183460469231731687303715884105727";
-    String => "type": "text";
+impl_datatypes! {
+    u8 where "type": "number", "step": "1", "min": "0", "max": "255";
+    u16 where "type": "number", "step": "1", "min": "0", "max": "65535";
+    u32 where "type": "number", "step": "1", "min": "0", "max": "4294967295";
+    u64 where "type": "number", "step": "1", "min": "0", "max": "18446744073709551615";
+    u128 where "type": "number", "step": "1", "min": "0", "max": "340282366920938463463374607431768211455";
+    i8 where "type": "number", "step": "1", "min": "-128", "max": "127";
+    i16 where "type": "number", "step": "1", "min": "-32768", "max": "32767";
+    i32 where "type": "number", "step": "1", "min": "-2147483648", "max": "2147483647";
+    i64 where "type": "number", "step": "1", "min": "-9223372036854775808", "max": "9223372036854775807";
+    i128 where "type": "number", "step": "1", "min": "-170141183460469231731687303715884105728", "max": "170141183460469231731687303715884105727";
+    String where "type": "text";
 }
 
 #[macro_export]
-macro_rules! custom_datatype {
-    (fn validate($var:ident : $inner:ty) -> Result<$this:ty, $err:ty> { $($body:tt)* } ) => {
+macro_rules! impl_custom_datatype {
+    ($this:ty) => {
         impl std::fmt::Display for $this {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 write!(f, "{}", self.0)
@@ -56,18 +57,10 @@ macro_rules! custom_datatype {
         }
 
         impl std::str::FromStr for $this {
-            type Err = $err;
+            type Err = <$this as $crate::CustomDatatype>::Error;
 
             fn from_str(s: &str) -> Result<Self, Self::Err> {
                 <Self as $crate::CustomDatatype>::validate(<Self as $crate::CustomDatatype>::Inner::from_str(s).map_err(<Self as $crate::Datatype>::Error::from)?)
-            }
-        }
-
-        impl TryFrom<<Self as $crate::CustomDatatype>::Inner> for $this {
-            type Error = $err;
-
-            fn try_from(value: <Self as $crate::CustomDatatype>::Inner) -> Result<Self, Self::Error> {
-                <Self as $crate::CustomDatatype>::validate(value)
             }
         }
 
@@ -88,15 +81,6 @@ macro_rules! custom_datatype {
                 <Self as $crate::CustomDatatype>::validate(value).map_err(serde::de::Error::custom)
             }
         }
-
-        impl $crate::CustomDatatype for $this {
-            type Inner = $inner;
-            type Error =  $err;
-
-            fn validate($var: Self::Inner) -> Result<Self, <Self as $crate::CustomDatatype>::Error> {
-                $($body)*
-            }
-        }
     };
 }
 
@@ -107,6 +91,10 @@ pub trait CustomDatatype: Datatype<Error = <Self as CustomDatatype>::Error> {
     fn validate(input: Self::Inner) -> Result<Self, <Self as CustomDatatype>::Error>
     where
         Self: Sized;
+
+    fn attributes() -> Vec<(&'static str, Attribute)> {
+        Vec::new()
+    }
 }
 
 impl<T> Datatype for T
@@ -118,6 +106,11 @@ where
 
     fn attributes() -> Vec<(&'static str, Attribute)> {
         T::Inner::attributes()
+            .into_iter()
+            .chain(<T as CustomDatatype>::attributes())
+            .collect::<HashMap<_, _>>()
+            .into_iter()
+            .collect()
     }
 }
 

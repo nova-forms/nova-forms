@@ -3,7 +3,9 @@ use std::convert::Infallible;
 use serde::Serialize;
 use thiserror::Error;
 
-use crate::custom_datatype;
+use crate::impl_custom_datatype;
+
+use super::CustomDatatype;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Serialize)]
 pub struct NonEmptyString(String);
@@ -20,12 +22,17 @@ impl From<Infallible> for NonEmptyStringError {
     }
 }
 
-custom_datatype! {
-    fn validate(input: String) -> Result<NonEmptyString, NonEmptyStringError> {
+impl CustomDatatype for NonEmptyString {   
+    type Inner = String;
+    type Error = NonEmptyStringError;
+
+    fn validate(input: String) -> Result<Self, NonEmptyStringError> {
         if input.is_empty() {
             Err(NonEmptyStringError::EmptyString)
         } else {
-            Ok(NonEmptyString(input))
+            Ok(Self(input))
         }
     }
 }
+
+impl_custom_datatype!(NonEmptyString);
