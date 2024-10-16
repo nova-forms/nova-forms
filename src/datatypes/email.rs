@@ -5,9 +5,9 @@ use regex::Regex;
 use serde::Serialize;
 use thiserror::Error;
 
-use crate::impl_custom_datatype;
+use crate::impl_datatype;
 
-use super::CustomDatatype;
+use super::Datatype;
 
 const EMAIL_REGEX: LazyCell<Regex> =
     LazyCell::new(|| Regex::new(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$").unwrap());
@@ -27,7 +27,7 @@ impl From<Infallible> for EmailError {
     }
 }
 
-impl CustomDatatype for Email {   
+impl Datatype for Email {   
     type Inner = String;
     type Error = EmailError;
 
@@ -44,4 +44,4 @@ impl CustomDatatype for Email {
     }
 }
 
-impl_custom_datatype!(Email);
+impl_datatype!(Email);

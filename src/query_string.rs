@@ -49,10 +49,9 @@ impl QueryString {
 
     pub fn form_value<T: Datatype>(&self) -> (QueryString, Result<T, T::Error>) {
         let form_data = expect_context::<FormDataSerialized>();
-        let value = form_data
+        let value = T::from_str(&form_data
             .exact(&self)
-            .map(|value| T::from_str(&value))
-            .unwrap_or_else(|| Ok(T::default()));
+            .unwrap_or_default());
         let prefix_qs = expect_context::<QueryString>();
         let curr_qs = prefix_qs.join(self.clone());
         (curr_qs, value)

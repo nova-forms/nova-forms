@@ -5,25 +5,21 @@ pub use email::*;
 pub use non_empty_string::*;
 
 use leptos::{provide_context, Attribute, IntoView, Oco, View};
-use std::collections::HashMap;
 use std::error::Error;
 use std::fmt::Display;
 use std::rc::Rc;
 use std::str::FromStr;
 
-pub trait Datatype: Display + Default + Clone + FromStr<Err = Self::Error> + 'static {
-    type Error: Error + Clone + 'static;
-
-    fn attributes() -> Vec<(&'static str, Attribute)> {
-        Vec::new()
-    }
-}
-
-macro_rules! impl_datatypes {
+macro_rules! impl_primitive_datatypes {
     ( $( $t:ty where $($name:literal: $val:literal),* $(,)? );* $(;)? ) => {
         $(
             impl Datatype for $t {
+                type Inner = $t;
                 type Error = <$t as FromStr>::Err;
+
+                fn validate(input: $t) -> Result<Self, <$t as FromStr>::Err> {
+                    Ok(input)
+                }
 
                 fn attributes() -> Vec<(&'static str, Attribute)> {
                     vec![ $( ($name, Attribute::String(Oco::Borrowed($val))) ),* ]
@@ -33,34 +29,43 @@ macro_rules! impl_datatypes {
     };
 }
 
-impl_datatypes! {
-    u8 where "type": "number", "step": "1", "min": "0", "max": "255";
-    u16 where "type": "number", "step": "1", "min": "0", "max": "65535";
-    u32 where "type": "number", "step": "1", "min": "0", "max": "4294967295";
-    u64 where "type": "number", "step": "1", "min": "0", "max": "18446744073709551615";
-    u128 where "type": "number", "step": "1", "min": "0", "max": "340282366920938463463374607431768211455";
-    i8 where "type": "number", "step": "1", "min": "-128", "max": "127";
-    i16 where "type": "number", "step": "1", "min": "-32768", "max": "32767";
-    i32 where "type": "number", "step": "1", "min": "-2147483648", "max": "2147483647";
-    i64 where "type": "number", "step": "1", "min": "-9223372036854775808", "max": "9223372036854775807";
-    i128 where "type": "number", "step": "1", "min": "-170141183460469231731687303715884105728", "max": "170141183460469231731687303715884105727";
+
+
+impl_primitive_datatypes! {
+    u8 where "type": "number", "required": "", "step": "1", "min": "0", "max": "255";
+    u16 where "type": "number", "required": "", "step": "1", "min": "0", "max": "65535";
+    u32 where "type": "number", "required": "", "step": "1", "min": "0", "max": "4294967295";
+    u64 where "type": "number", "required": "", "step": "1", "min": "0", "max": "18446744073709551615";
+    u128 where "type": "number", "required": "", "step": "1", "min": "0", "max": "340282366920938463463374607431768211455";
+    i8 where "type": "number", "required": "", "step": "1", "min": "-128", "max": "127";
+    i16 where "type": "number", "required": "", "step": "1", "min": "-32768", "max": "32767";
+    i32 where "type": "number", "required": "", "step": "1", "min": "-2147483648", "max": "2147483647";
+    i64 where "type": "number", "required": "", "step": "1", "min": "-9223372036854775808", "max": "9223372036854775807";
+    i128 where "type": "number", "required": "", "step": "1", "min": "-170141183460469231731687303715884105728", "max": "170141183460469231731687303715884105727";
     String where "type": "text";
 }
 
+/*
+macro_rules! attrs {
+    ($($k:literal $( = $v:literal )? )*) => {
+        vec![
+            $( ($k, {
+                #[allow(unused_mut)]
+                let mut v = Attribute::Bool(true);
+                $( v = Attribute::String(Oco::Borrowed($v.to_string())); )?
+                v
+            }) ),*
+        ]
+    };
+}
+*/
+
 #[macro_export]
-macro_rules! impl_custom_datatype {
+macro_rules! impl_datatype {
     ($this:ty) => {
         impl std::fmt::Display for $this {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 write!(f, "{}", self.0)
-            }
-        }
-
-        impl std::str::FromStr for $this {
-            type Err = <$this as $crate::CustomDatatype>::Error;
-
-            fn from_str(s: &str) -> Result<Self, Self::Err> {
-                <Self as $crate::CustomDatatype>::validate(<Self as $crate::CustomDatatype>::Inner::from_str(s).map_err(<Self as $crate::Datatype>::Error::from)?)
             }
         }
 
@@ -72,46 +77,35 @@ macro_rules! impl_custom_datatype {
             }
         }
 
+        impl std::str::FromStr for $this {
+            type Err = <$this as $crate::Datatype>::Error;
+        
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                <$this as $crate::Datatype>::validate(<$this as $crate::Datatype>::Inner::from_str(s).map_err(<$this as $crate::Datatype>::Error::from)?)
+            }
+        }
+
         impl<'de> serde::Deserialize<'de> for $this {
             fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
             where
                 D: serde::Deserializer<'de>,
             {
-                let value = <Self as $crate::CustomDatatype>::Inner::deserialize(deserializer)?;
-                <Self as $crate::CustomDatatype>::validate(value).map_err(serde::de::Error::custom)
+                let value = <$this as $crate::Datatype>::Inner::deserialize(deserializer)?;
+                <$this as $crate::Datatype>::validate(value).map_err(serde::de::Error::custom)
             }
         }
     };
 }
 
-pub trait CustomDatatype: Datatype<Error = <Self as CustomDatatype>::Error> {
+pub trait Datatype: Clone + Display + FromStr<Err = Self::Error> + 'static {
     type Inner: Datatype;
     type Error: From<<Self::Inner as Datatype>::Error> + Error + Clone + 'static;
 
-    fn validate(input: Self::Inner) -> Result<Self, <Self as CustomDatatype>::Error>
+    fn validate(input: Self::Inner) -> Result<Self, Self::Error>
     where
         Self: Sized;
 
-    fn attributes() -> Vec<(&'static str, Attribute)> {
-        Vec::new()
-    }
-}
-
-impl<T> Datatype for T
-where
-    T: CustomDatatype,
-    T::Inner: Datatype,
-{
-    type Error = <Self as CustomDatatype>::Error;
-
-    fn attributes() -> Vec<(&'static str, Attribute)> {
-        T::Inner::attributes()
-            .into_iter()
-            .chain(<T as CustomDatatype>::attributes())
-            .collect::<HashMap<_, _>>()
-            .into_iter()
-            .collect()
-    }
+    fn attributes() -> Vec<(&'static str, Attribute)>;
 }
 
 #[derive(Clone)]

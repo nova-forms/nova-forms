@@ -1,11 +1,12 @@
 use std::convert::Infallible;
 
+use leptos::{Attribute, IntoAttribute};
 use serde::Serialize;
 use thiserror::Error;
 
-use crate::impl_custom_datatype;
+use crate::impl_datatype;
 
-use super::CustomDatatype;
+use super::Datatype;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Serialize)]
 pub struct NonEmptyString(String);
@@ -22,7 +23,7 @@ impl From<Infallible> for NonEmptyStringError {
     }
 }
 
-impl CustomDatatype for NonEmptyString {   
+impl Datatype for NonEmptyString {   
     type Inner = String;
     type Error = NonEmptyStringError;
 
@@ -33,6 +34,13 @@ impl CustomDatatype for NonEmptyString {
             Ok(Self(input))
         }
     }
+
+    fn attributes() -> Vec<(&'static str, leptos::Attribute)> {
+        vec![
+            ("type", "text".into_attribute()),
+            ("required", Attribute::Bool(true)),
+        ]
+    }
 }
 
-impl_custom_datatype!(NonEmptyString);
+impl_datatype!(NonEmptyString);
