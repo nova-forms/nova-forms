@@ -161,17 +161,14 @@ where
                 return;
             }
 
-            logging::log!("triggering validation");
             set_trigger_validation.set(TriggerValidation::All);
             if inputs_context.get().has_errors() {
-                logging::log!("inputs have errors: {:?}", inputs_context.get());
                 set_submit_state.set(SubmitState::Error(SubmitError::ValidationError));
                 return;
             }
 
             let data = ServFn::from_event(&ev);
             if let Err(err) = data {
-                logging::log!("error: {err}, {:?}", inputs_context.get());
                 set_submit_state.set(SubmitState::Error(SubmitError::ParseError));
                 return;
             }
@@ -195,7 +192,7 @@ where
     };
 
     view! {
-        <form id="nova-form" action="" on:submit=on_submit_inner class=move || if preview_mode.get() { "hidden" } else { "edit" }>
+        <form id="nova-form" novalidate action="" on:submit=on_submit_inner class=move || if preview_mode.get() { "hidden" } else { "edit" }>
             {children}
             <input type="hidden" name=bind_meta_data.add_key("locale") value={move || i18n.get_locale().to_string()} />
             <div>

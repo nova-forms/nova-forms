@@ -175,7 +175,6 @@ impl FormDataSerialized {
     }
 
     pub fn exact(&self, key: &QueryString) -> Option<String> {
-        logging::log!("exact: {:?}, values are {:?}", key, self.0);
         self.0.get(&key).map(|s| s.to_owned())
     }
 

@@ -10,8 +10,38 @@ use std::fmt::Display;
 use std::rc::Rc;
 use std::str::FromStr;
 
-macro_rules! impl_primitive_datatypes {
-    ( $( $t:ty where $($name:literal: $val:literal),* $(,)? );* $(;)? ) => {
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+pub struct Optional<T>(Option<T>);
+
+impl<T> FromStr for Optional<T>
+where
+    T: FromStr,
+{
+    type Err = <T as FromStr>::Err;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if s.is_empty() {
+            return Ok(Optional(None));
+        }
+        Ok(Optional(T::from_str(s).ok()))
+    }
+}
+
+impl<T> Display for Optional<T>
+where
+    T: Display,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if let Some(value) = &self.0 {
+            write!(f, "{}", value)
+        } else {
+            write!(f, "")
+        }
+    }
+}
+
+macro_rules! impl_direct_datatypes {
+    ( $( $t:ty where $($name:literal $( : $val:literal)? ),* $(,)? );* $(;)? ) => {
         $(
             impl Datatype for $t {
                 type Inner = $t;
@@ -22,26 +52,39 @@ macro_rules! impl_primitive_datatypes {
                 }
 
                 fn attributes() -> Vec<(&'static str, Attribute)> {
-                    vec![ $( ($name, Attribute::String(Oco::Borrowed($val))) ),* ]
+                    vec![ $( ($name, {
+                        #[allow(unused)]
+                        let mut v = Attribute::Bool(true);
+                        $( v = Attribute::String(Oco::Borrowed($val)); )?
+                        v
+                    }) ),* ]
                 }
             }
         )*
     };
 }
 
-
-
-impl_primitive_datatypes! {
-    u8 where "type": "number", "required": "", "step": "1", "min": "0", "max": "255";
-    u16 where "type": "number", "required": "", "step": "1", "min": "0", "max": "65535";
-    u32 where "type": "number", "required": "", "step": "1", "min": "0", "max": "4294967295";
-    u64 where "type": "number", "required": "", "step": "1", "min": "0", "max": "18446744073709551615";
-    u128 where "type": "number", "required": "", "step": "1", "min": "0", "max": "340282366920938463463374607431768211455";
-    i8 where "type": "number", "required": "", "step": "1", "min": "-128", "max": "127";
-    i16 where "type": "number", "required": "", "step": "1", "min": "-32768", "max": "32767";
-    i32 where "type": "number", "required": "", "step": "1", "min": "-2147483648", "max": "2147483647";
-    i64 where "type": "number", "required": "", "step": "1", "min": "-9223372036854775808", "max": "9223372036854775807";
-    i128 where "type": "number", "required": "", "step": "1", "min": "-170141183460469231731687303715884105728", "max": "170141183460469231731687303715884105727";
+impl_direct_datatypes! {
+    u8 where "type": "number", "step": "1", "min": "0", "max": "255", "required";
+    Optional<u8> where "type": "number", "step": "1", "min": "0", "max": "255";
+    u16 where "type": "number", "step": "1", "min": "0", "max": "65535", "required";
+    Optional<u16> where "type": "number", "step": "1", "min": "0", "max": "65535";
+    u32 where "type": "number", "step": "1", "min": "0", "max": "4294967295", "required";
+    Optional<u32> where "type": "number", "step": "1", "min": "0", "max": "4294967295";
+    u64 where "type": "number", "step": "1", "min": "0", "max": "18446744073709551615", "required";
+    Optional<u64> where "type": "number", "step": "1", "min": "0", "max": "18446744073709551615";
+    u128 where "type": "number", "step": "1", "min": "0", "max": "340282366920938463463374607431768211455", "required";
+    Optional<u128> where "type": "number", "step": "1", "min": "0", "max": "340282366920938463463374607431768211455";
+    i8 where "type": "number", "step": "1", "min": "-128", "max": "127", "required";
+    Optional<i8> where "type": "number", "step": "1", "min": "-128", "max": "127";
+    i16 where "type": "number", "step": "1", "min": "-32768", "max": "32767", "required";
+    Optional<i16> where "type": "number", "step": "1", "min": "-32768", "max": "32767";
+    i32 where "type": "number", "step": "1", "min": "-2147483648", "max": "2147483647", "required";
+    Optional<i32> where "type": "number", "step": "1", "min": "-2147483648", "max": "2147483647";
+    i64 where "type": "number", "step": "1", "min": "-9223372036854775808", "max": "9223372036854775807", "required";
+    Optional<i64> where "type": "number", "step": "1", "min": "-9223372036854775808", "max": "9223372036854775807";
+    i128 where "type": "number", "step": "1", "min": "-170141183460469231731687303715884105728", "max": "170141183460469231731687303715884105727", "required";
+    Optional<i128> where "type": "number", "step": "1", "min": "-170141183460469231731687303715884105728", "max": "170141183460469231731687303715884105727";
     String where "type": "text";
 }
 

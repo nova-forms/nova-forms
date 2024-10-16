@@ -90,15 +90,6 @@ where
     T: Datatype,
 {
     let (qs, form_value) = bind.form_value::<T>();
-    logging::log!(
-        "form value for {} is '{}'",
-        qs,
-        form_value
-            .as_ref()
-            .map(|v| v.to_string())
-            .unwrap_or_default()
-    );
-
     let (show_error, set_show_error) = create_signal(false);
 
     let (raw_value, set_raw_value) = create_signal(
