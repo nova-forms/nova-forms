@@ -1,14 +1,13 @@
 use std::{cell::LazyCell, convert::Infallible};
 
-use thiserror::Error;
-use serde::Serialize;
 use regex::Regex;
+use serde::Serialize;
+use thiserror::Error;
 
 use crate::custom_datatype;
 
-const EMAIL_REGEX: LazyCell<Regex> = LazyCell::new(|| {
-    Regex::new(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$").unwrap()
-});
+const EMAIL_REGEX: LazyCell<Regex> =
+    LazyCell::new(|| Regex::new(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$").unwrap());
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Serialize)]
 pub struct Email(String);
@@ -25,7 +24,7 @@ impl From<Infallible> for EmailError {
     }
 }
 
-custom_datatype!{
+custom_datatype! {
     fn validate(input: String) -> Result<Email, EmailError> {
         if !EMAIL_REGEX.is_match(&input) {
             Err(EmailError::InvalidFormat)

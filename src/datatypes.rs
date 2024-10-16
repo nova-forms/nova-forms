@@ -1,8 +1,8 @@
-mod non_empty_string;
 mod email;
+mod non_empty_string;
 
-pub use non_empty_string::*;
 pub use email::*;
+pub use non_empty_string::*;
 
 use leptos::{provide_context, Attribute, IntoView, Oco, View};
 use std::error::Error;
@@ -21,7 +21,7 @@ pub trait Datatype: Display + Default + Clone + FromStr<Err = Self::Error> + 'st
 macro_rules! datatype {
     ( $( $t:ty => $($name:literal: $val:literal),* $(,)? );* $(;)? ) => {
         $(
-            impl Datatype for $t { 
+            impl Datatype for $t {
                 type Error = <$t as FromStr>::Err;
 
                 fn attributes() -> Vec<(&'static str, Attribute)> {
@@ -57,23 +57,23 @@ macro_rules! custom_datatype {
 
         impl std::str::FromStr for $this {
             type Err = $err;
-        
+
             fn from_str(s: &str) -> Result<Self, Self::Err> {
                 <Self as $crate::CustomDatatype>::validate(<Self as $crate::CustomDatatype>::Inner::from_str(s).map_err(<Self as $crate::Datatype>::Error::from)?)
             }
         }
-        
+
         impl TryFrom<<Self as $crate::CustomDatatype>::Inner> for $this {
             type Error = $err;
-        
+
             fn try_from(value: <Self as $crate::CustomDatatype>::Inner) -> Result<Self, Self::Error> {
                 <Self as $crate::CustomDatatype>::validate(value)
             }
         }
-        
+
         impl std::ops::Deref for $this {
             type Target = String;
-        
+
             fn deref(&self) -> &Self::Target {
                 &self.0
             }
@@ -88,11 +88,11 @@ macro_rules! custom_datatype {
                 <Self as $crate::CustomDatatype>::validate(value).map_err(serde::de::Error::custom)
             }
         }
-        
+
         impl $crate::CustomDatatype for $this {
             type Inner = $inner;
             type Error =  $err;
-        
+
             fn validate($var: Self::Inner) -> Result<Self, <Self as $crate::CustomDatatype>::Error> {
                 $($body)*
             }
@@ -100,12 +100,13 @@ macro_rules! custom_datatype {
     };
 }
 
-
 pub trait CustomDatatype: Datatype<Error = <Self as CustomDatatype>::Error> {
     type Inner: Datatype;
     type Error: From<<Self::Inner as Datatype>::Error> + Error + Clone + 'static;
 
-    fn validate(input: Self::Inner) -> Result<Self, <Self as CustomDatatype>::Error> where Self: Sized;
+    fn validate(input: Self::Inner) -> Result<Self, <Self as CustomDatatype>::Error>
+    where
+        Self: Sized;
 }
 
 impl<T> Datatype for T
@@ -113,7 +114,7 @@ where
     T: CustomDatatype,
     T::Inner: Datatype,
 {
-    type Error =<Self as CustomDatatype>::Error;
+    type Error = <Self as CustomDatatype>::Error;
 
     fn attributes() -> Vec<(&'static str, Attribute)> {
         T::Inner::attributes()
@@ -144,5 +145,5 @@ where
     V: IntoView + 'static,
     F: Fn(T) -> V + Clone + 'static,
 {
-    provide_context(TranslationProvider::from(move |value | f(value).into_view()));
+    provide_context(TranslationProvider::from(move |value| f(value).into_view()));
 }

@@ -10,7 +10,8 @@ use std::{fmt::Debug, marker::PhantomData, str::FromStr};
 use thiserror::Error;
 
 use crate::{
-    FormDataSerialized, IconButton, IconSelect, InputsContext, Modal, ModalKind, PagesContext, QueryString, TriggerValidation
+    FormDataSerialized, IconButton, IconSelect, InputsContext, Modal, ModalKind, PagesContext,
+    QueryString, TriggerValidation,
 };
 
 #[derive(Error, Debug, Clone, Copy)]
@@ -68,11 +69,11 @@ where
         None => {}
     });
 
-    
     let (pages_context, set_pages_context) = create_signal(PagesContext::default());
     provide_context((pages_context, set_pages_context));
 
-    let (inputs_context, set_inputs_context) = create_signal(InputsContext::new(trigger_validation));
+    let (inputs_context, set_inputs_context) =
+        create_signal(InputsContext::new(trigger_validation));
     provide_context((inputs_context, set_inputs_context));
 
     let children = children();
@@ -167,14 +168,13 @@ where
                 set_submit_state.set(SubmitState::Error(SubmitError::ValidationError));
                 return;
             }
-            
+
             let data = ServFn::from_event(&ev);
             if let Err(err) = data {
                 logging::log!("error: {err}, {:?}", inputs_context.get());
                 set_submit_state.set(SubmitState::Error(SubmitError::ParseError));
                 return;
             }
-
 
             match ServFn::from_event(&ev) {
                 Ok(new_input) => {
@@ -194,7 +194,6 @@ where
         }
     };
 
-    
     view! {
         <form id="nova-form" action="" on:submit=on_submit_inner class=move || if preview_mode.get() { "hidden" } else { "edit" }>
             {children}
@@ -206,7 +205,7 @@ where
                     on:click = move |_| set_pages_context.update(|pages_context| pages_context.prev())
                     disabled=Signal::derive(move || pages_context.get().is_first_selected()) />
                 <IconButton label="Next Page" icon="arrow_forward"
-                    on:click = move |_| {    
+                    on:click = move |_| {
                         set_pages_context.update(|pages_context| pages_context.next());
                      }
                     disabled=Signal::derive(move || pages_context.get().is_last_selected()) />
@@ -388,7 +387,7 @@ macro_rules! init_nova_forms {
                         // Sets the locale from the meta data.
                         if let Some(meta_data) = meta_data {
                             i18n.set_locale(i18n::Locale::from_str(meta_data.locale.as_str()).unwrap());
-                        }                    
+                        }
 
                         view! {
                             <FormContainer title=t!(i18n, nova_forms) subtitle=t!(i18n, demo_form) logo="/logo.png">

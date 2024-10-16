@@ -1,7 +1,7 @@
 use std::convert::Infallible;
 
-use thiserror::Error;
 use serde::Serialize;
+use thiserror::Error;
 
 use crate::custom_datatype;
 

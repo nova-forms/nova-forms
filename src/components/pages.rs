@@ -1,8 +1,8 @@
 use leptos::*;
 
 mod context {
-    use std::{borrow::Cow, str::FromStr};
     use leptos::TextProp;
+    use std::{borrow::Cow, str::FromStr};
 
     #[derive(Debug, Clone)]
     pub struct PageData {
@@ -40,7 +40,7 @@ mod context {
             Ok(PageId(Cow::Owned(s.to_owned())))
         }
     }
-    
+
     impl PageId {
         pub fn new(id: &'static str) -> Self {
             Self(Cow::Borrowed(id))
@@ -169,9 +169,8 @@ pub fn Page(id: &'static str, #[prop(into)] label: TextProp, children: Children)
     let (pages_context, set_pages_context) =
         expect_context::<(ReadSignal<PagesContext>, WriteSignal<PagesContext>)>();
 
-    set_pages_context.update(|pages_context| {
-        pages_context.register(PageData::new(id.clone(), label))
-    });
+    set_pages_context
+        .update(|pages_context| pages_context.register(PageData::new(id.clone(), label)));
 
     view! {
         <Provider value=PageContext::new(id.clone())>

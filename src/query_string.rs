@@ -1,8 +1,8 @@
 use std::{collections::HashMap, fmt::Display};
 
 use leptos::*;
-use serde::Serialize;
 use percent_encoding::{percent_decode, percent_encode, NON_ALPHANUMERIC};
+use serde::Serialize;
 
 use crate::Datatype;
 
@@ -155,7 +155,12 @@ impl FormDataSerialized {
             .into_iter()
             .map(|pair| {
                 pair.split_once("=")
-                    .map(|(k, v)| (QueryString::from(k), percent_decode(v.as_bytes()).decode_utf8_lossy().to_string()))
+                    .map(|(k, v)| {
+                        (
+                            QueryString::from(k),
+                            percent_decode(v.as_bytes()).decode_utf8_lossy().to_string(),
+                        )
+                    })
                     .unwrap_or_else(|| (QueryString::from(pair), String::new()))
             })
             .collect();
