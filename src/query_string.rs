@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fmt::Display};
+use std::{collections::HashMap, fmt::Display, str::FromStr};
 
 use leptos::*;
 use percent_encoding::{percent_decode, percent_encode, NON_ALPHANUMERIC};
@@ -137,19 +137,21 @@ impl Display for QueryString {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct FormDataSerialized(HashMap<QueryString, String>);
 
 impl<F: Serialize> From<F> for FormDataSerialized {
     fn from(form_data: F) -> Self {
         let serialized = serde_qs::to_string(&form_data).expect("must be serializable");
-        FormDataSerialized::from_query_str(&serialized)
+        FormDataSerialized::from_str(&serialized).unwrap()
     }
 }
 
-impl FormDataSerialized {
-    pub fn from_query_str(string: &str) -> Self {
-        let map = string
+impl FromStr for FormDataSerialized {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, ()> {
+        let map = s
             .split("&")
             .into_iter()
             .map(|pair| {
@@ -163,17 +165,22 @@ impl FormDataSerialized {
                     .unwrap_or_else(|| (QueryString::from(pair), String::new()))
             })
             .collect();
-        FormDataSerialized(map)
-    }
 
-    pub fn to_query_string(&self) -> String {
+        Ok(FormDataSerialized(map))
+    }
+}
+
+impl ToString for FormDataSerialized {
+    fn to_string(&self) -> String {
         self.0
             .iter()
             .map(|(k, v)| format!("{}={}", k, percent_encode(v.as_bytes(), NON_ALPHANUMERIC)))
             .collect::<Vec<_>>()
             .join("&")
     }
+}
 
+impl FormDataSerialized {
     pub fn exact(&self, key: &QueryString) -> Option<String> {
         self.0.get(&key).map(|s| s.to_owned())
     }

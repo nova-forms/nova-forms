@@ -43,8 +43,8 @@ pub fn NovaForm<F, ServFn, L, K>(
     children: Children,
 ) -> impl IntoView
 where
-    F: Default + Serialize + 'static,
-    ServFn: DeserializeOwned
+    F: Default + Clone + Serialize + Debug + 'static,
+    ServFn: DeserializeOwned + Serialize
         + ServerFn<InputEncoding = PostUrl, Error = NoCustomError, Output = ()>
         + 'static,
     <<ServFn::Client as Client<ServFn::Error>>::Request as ClientReq<ServFn::Error>>::FormData:
@@ -53,9 +53,12 @@ where
     <L as FromStr>::Err: Debug,
     K: LocaleKeys<Locale = L> + 'static,
 {
+    //let (local_storage, set_local_storage, _) = use_local_storage::<Option<FormDataSerialized>, FromToStringCodec>("form_data");
+    //logging::log!("Form data local storage: {:?}, provided {:?}", local_storage.get(), form_data);
+
     let form_data_serialized = FormDataSerialized::from(form_data);
 
-    provide_context(bind);
+    provide_context(bind.clone());
     provide_context(form_data_serialized.clone());
 
     let (preview_mode, set_preview_mode) = create_signal(false);
@@ -131,7 +134,7 @@ where
         .collect::<Vec<_>>();
 
     let value = on_submit.value();
-
+    
     let on_submit_inner = {
         move |ev: SubmitEvent| {
             if ev.default_prevented() {
@@ -162,23 +165,23 @@ where
             }
 
             set_trigger_validation.set(TriggerValidation::All);
-            if inputs_context.get().has_errors() {
+            if let Some(input_data) = inputs_context.get().has_errors() {
                 set_submit_state.set(SubmitState::Error(SubmitError::ValidationError));
+                set_pages_context.update(|pages_context| pages_context.select(input_data.page_id.clone()));
                 return;
             }
 
-            let data = ServFn::from_event(&ev);
-            if let Err(err) = data {
-                set_submit_state.set(SubmitState::Error(SubmitError::ParseError));
-                return;
-            }
 
             match ServFn::from_event(&ev) {
                 Ok(new_input) => {
+                    //let form_data = FormDataSerialized::from(&new_input);
+                    //logging::log!("Form data: {form_data:?}");
+                    //set_local_storage.set(form_data.clone());
                     set_submit_state.set(SubmitState::Pending);
                     on_submit.dispatch(new_input);
                 }
                 Err(err) => {
+                    set_submit_state.set(SubmitState::Error(SubmitError::ParseError));
                     logging::error!(
                         "Error converting form field into server function \
                          arguments: {err:?}"

@@ -65,14 +65,14 @@ mod context {
             self.inputs.get_mut(qs).expect("cannot set error").has_error = has_error;
         }
 
-        pub fn has_errors(&self) -> bool {
-            self.inputs.values().any(|data| data.has_error)
+        pub fn has_errors(&self) -> Option<&InputData> {
+            self.inputs.values().find(|data| data.has_error)
         }
 
-        pub fn has_errors_on_page(&self, page_id: PageId) -> bool {
+        pub fn has_errors_on_page(&self, page_id: PageId) -> Option<&InputData> {
             self.inputs
                 .values()
-                .any(|data| data.page_id == page_id && data.has_error)
+                .find(|data| data.page_id == page_id && data.has_error)
         }
     }
 }
