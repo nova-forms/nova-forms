@@ -6,25 +6,25 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use server_fn::{
     client::Client, codec::PostUrl, error::NoCustomError, request::ClientReq, ServerFn,
 };
+use time::UtcOffset;
 use std::{fmt::Debug, marker::PhantomData, str::FromStr};
 use thiserror::Error;
 
 use crate::{
-    FormDataSerialized, IconButton, IconSelect, InputsContext, Modal, ModalKind, PagesContext,
-    QueryString, TriggerValidation,
+    local_utc_offset, FormDataSerialized, IconButton, IconSelect, InputsContext, Modal, ModalKind, PagesContext, QueryString, TriggerValidation
 };
 
-#[derive(Error, Debug, Clone, Copy)]
+#[derive(Error, Debug, Clone)]
 enum SubmitError {
     #[error("the form contains errors")]
     ValidationError,
     #[error("the form contains errors")]
     ParseError,
-    #[error("a server error occurred")]
-    ServerError,
+    #[error("a server error occurred: {0}")]
+    ServerError(ServerFnError),
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 enum SubmitState {
     Initial,
     Pending,
@@ -68,7 +68,7 @@ where
     let on_submit_value = on_submit.value();
     create_effect(move |_| match on_submit_value.get() {
         Some(Ok(_)) => set_submit_state.set(SubmitState::Success),
-        Some(Err(_)) => set_submit_state.set(SubmitState::Error(SubmitError::ServerError)),
+        Some(Err(err)) => set_submit_state.set(SubmitState::Error(SubmitError::ServerError(err))),
         None => {}
     });
 
@@ -197,7 +197,10 @@ where
     view! {
         <form id="nova-form" novalidate action="" on:submit=on_submit_inner class=move || if preview_mode.get() { "hidden" } else { "edit" }>
             {children}
-            <input type="hidden" name=bind_meta_data.add_key("locale") value={move || i18n.get_locale().to_string()} />
+
+            <input type="hidden" name=bind_meta_data.clone().add_key("locale") value={move || i18n.get_locale().to_string()} />
+            <input type="hidden" name=bind_meta_data.clone().add_key("local_utc_offset") value={move || local_utc_offset().to_string()} />
+
             <div>
                 <IconButton
                     label="Previous Page"
@@ -332,7 +335,13 @@ where
             }.into_view(),
             SubmitState::Error(err) => view! {
                 <Modal kind=ModalKind::Error title="Submission" close=move |()| set_submit_state.set(SubmitState::Initial)>
-                    {format!("Your form could not be submitted: {err}.")}
+                    {
+                        if cfg!(debug_assertions) {
+                            format!("Your form could not be submitted: {err}.")
+                        } else {
+                            format!("Your form could not be submitted.")
+                        }
+                    }
                 </Modal>
             }.into_view(),
             SubmitState::Success => view! {
@@ -360,6 +369,7 @@ where
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MetaData {
     pub locale: String,
+    pub local_utc_offset: UtcOffset,
 }
 
 #[macro_export]

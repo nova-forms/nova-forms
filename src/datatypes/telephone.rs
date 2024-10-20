@@ -1,0 +1,47 @@
+use std::{cell::LazyCell, convert::Infallible};
+
+use leptos::IntoAttribute;
+use regex::Regex;
+use serde::Serialize;
+use thiserror::Error;
+
+use crate::impl_datatype;
+
+use super::Datatype;
+
+const EMAIL_REGEX: LazyCell<Regex> =
+    LazyCell::new(|| Regex::new(r"^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$").unwrap());
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Serialize)]
+pub struct Telephone(String);
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
+pub enum TelephoneError {
+    #[error("invalid format")]
+    InvalidFormat,
+}
+
+impl From<Infallible> for TelephoneError {
+    fn from(_: Infallible) -> Self {
+        unreachable!()
+    }
+}
+
+impl Datatype for Telephone {   
+    type Inner = String;
+    type Error = TelephoneError;
+
+    fn validate(input: String) -> Result<Telephone, TelephoneError> {
+        if !EMAIL_REGEX.is_match(&input) {
+            Err(TelephoneError::InvalidFormat)
+        } else {
+            Ok(Telephone(input))
+        }
+    }
+
+    fn attributes() -> Vec<(&'static str, leptos::Attribute)> {
+        vec![("type", "tel".into_attribute())]
+    }
+}
+
+impl_datatype!(Telephone);

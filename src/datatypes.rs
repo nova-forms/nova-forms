@@ -1,8 +1,19 @@
 mod email;
 mod non_empty_string;
+mod telephone;
+mod date_time;
+mod date;
+mod time;
 
 pub use email::*;
 pub use non_empty_string::*;
+pub use telephone::*;
+pub use date_time::*;
+pub use date::*;
+pub use time::*;
+
+use num_bigint::BigInt;
+use num_rational::BigRational;
 
 use leptos::{provide_context, Attribute, IntoView, Oco, View};
 use std::error::Error;
@@ -86,22 +97,18 @@ impl_direct_datatypes! {
     i128 where "type": "number", "step": "1", "min": "-170141183460469231731687303715884105728", "max": "170141183460469231731687303715884105727", "required";
     Optional<i128> where "type": "number", "step": "1", "min": "-170141183460469231731687303715884105728", "max": "170141183460469231731687303715884105727";
     String where "type": "text";
+    BigInt where "type": "number", "step": "1", "required";
+    Optional<BigInt> where "type": "number", "step": "1";
+    BigRational where "type": "number", "required";
+    Optional<BigRational> where "type": "number";
+    DateTime where "type": "datetime-local", "required";
+    Optional<DateTime> where "type": "datetime-local";
+    Date where "type": "date", "required";
+    Optional<Date> where "type": "date";
+    Time where "type": "time", "required";
+    Optional<Time> where "type": "time";
+    bool where "type": "checkbox";
 }
-
-/*
-macro_rules! attrs {
-    ($($k:literal $( = $v:literal )? )*) => {
-        vec![
-            $( ($k, {
-                #[allow(unused_mut)]
-                let mut v = Attribute::Bool(true);
-                $( v = Attribute::String(Oco::Borrowed($v.to_string())); )?
-                v
-            }) ),*
-        ]
-    };
-}
-*/
 
 #[macro_export]
 macro_rules! impl_datatype {
