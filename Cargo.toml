@@ -27,6 +27,7 @@ codee = { version = "0.2" }
 time = { version = "0.3", features = ["serde", "parsing", "formatting", "local-offset", "wasm-bindgen"] }
 num-bigint = { version = "0.4", features = ["serde"] }
 num-rational = { version = "0.4", features = ["serde"] }
+ustr = "1"
 
 [features]
 csr = ["leptos/csr", "leptos_router/csr"]

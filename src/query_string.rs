@@ -21,10 +21,16 @@ impl Display for QueryStringPart {
     }
 }
 
+/// Used to bind a form input element to a form data element.
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Default)]
 pub struct QueryString(Vec<QueryStringPart>);
 
 impl QueryString {
+    /// Checks whether the current query string extends the other query string.
+    /// 
+    /// ```rust
+    /// assert_eq!(QueryString::from("form_data[a][b]").extends(QueryString::from("form_data[a]")), Some(QueryString::from("b")));
+    /// ```
     fn extends(&self, other: &Self) -> Option<QueryString> {
         if self.0.len() < other.0.len() {
             return None;
@@ -39,6 +45,7 @@ impl QueryString {
         ))
     }
 
+    /// Gets the `QueryString` and the serialized `FormData` for the current context.
     pub fn form_context(&self) -> (QueryString, FormDataSerialized) {
         let form_data = expect_context::<FormDataSerialized>();
         let curr_form_data = form_data.level(&self);
@@ -47,6 +54,9 @@ impl QueryString {
         (curr_qs, curr_form_data)
     }
 
+    /// Gets the `QueryString` and the serialized value for the current context.
+    /// This is very similar to `form_context`, but it assumes that `FormData` only contains one value
+    /// which is deserializable into the type `T`.
     pub fn form_value<T: Datatype>(&self) -> (QueryString, Result<T, T::Error>) {
         let form_data = expect_context::<FormDataSerialized>();
         let value = T::from_str(&form_data
@@ -57,6 +67,7 @@ impl QueryString {
         (curr_qs, value)
     }
 
+    /// Joins two `QueryString`s.
     pub fn join(self, mut other: Self) -> Self {
         let mut parts = self.0;
         parts.append(&mut other.0);

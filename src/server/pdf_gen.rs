@@ -8,6 +8,7 @@ use thiserror::Error;
 use tokio::{fs::File, io::AsyncWriteExt, process::Command};
 use uuid::Uuid;
 
+/// A PDF generator.
 #[derive(Clone)]
 pub struct PdfGen {
     settings: Arc<Settings>,
@@ -26,6 +27,7 @@ impl Default for Settings {
 }
 
 impl PdfGen {
+    /// Creates a new `PdfGen`.
     pub fn new() -> Self {
         Self {
             settings: Arc::new(Settings::default()),
@@ -67,6 +69,7 @@ impl PdfGen {
         Ok(output_path)
     }
 
+    /// Renders a form as a PDF.
     pub async fn render_form<F, IV>(&self, form: F) -> Result<PathBuf, Error>
     where
         F: FnOnce() -> IV + Send + 'static,

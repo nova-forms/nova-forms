@@ -11,8 +11,13 @@ use web_sys::{wasm_bindgen::JsCast, FormData, HtmlInputElement};
 
 // See this for reference: https://github.com/leptos-rs/leptos/blob/96e2b5cba10d2296f262820be19cac9b615b0d23/examples/server_fns_axum/src/app.rs
 
+/// A component that allows users to upload files.
+/// The files are automatically uploaded to the server and stored in the `FileStore`.
 #[component]
-pub fn FileUpload(#[prop(into)] bind: QueryString) -> impl IntoView {
+pub fn FileUpload(
+    /// The query string to bind to a list of `FileId`s.
+    #[prop(into)] bind: QueryString
+) -> impl IntoView {
     let (qs, _form_data) = bind.form_context();
 
     let (file_info, set_file_info) = create_signal(Vec::new());

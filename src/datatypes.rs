@@ -70,6 +70,10 @@ macro_rules! impl_direct_datatypes {
                         v
                     }) ),* ]
                 }
+
+                fn default_debug_value() -> Self {
+                    Default::default()
+                }
             }
         )*
     };
@@ -147,19 +151,30 @@ macro_rules! impl_datatype {
     };
 }
 
+/// A trait for defining custom datatypes.
+/// Implemented on all types that can be used as a form input.
 pub trait Datatype: Clone + Display + FromStr<Err = Self::Error> + 'static {
     type Inner: Datatype;
     type Error: From<<Self::Inner as Datatype>::Error> + Error + Clone + 'static;
 
+    /// Validate the input and return the datatype.
     fn validate(input: Self::Inner) -> Result<Self, Self::Error>
     where
         Self: Sized;
 
+    /// Return the HTML attributes for the datatype that should be added to an input field.
     fn attributes() -> Vec<(&'static str, Attribute)>;
+
+    /// Debug value to autofill the form.
+    fn default_debug_value() -> Self
+    where
+        Self: Sized;
 }
 
+// Defines custom translations for a type `T`.
+// This is useful for adding custom error messages to error enums.
 #[derive(Clone)]
-pub struct TranslationProvider<T>(Rc<dyn Fn(T) -> View>);
+pub(crate) struct TranslationProvider<T>(Rc<dyn Fn(T) -> View>);
 
 impl<T> TranslationProvider<T> {
     pub fn t(&self, value: T) -> View {
@@ -176,6 +191,8 @@ where
     }
 }
 
+/// Adds custom translations to a type `T`.
+/// This is useful for adding custom error messages to error enums or other elements.
 pub fn provide_translation_context<F, T, V>(f: F)
 where
     T: Clone + 'static,

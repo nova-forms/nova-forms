@@ -7,6 +7,11 @@ use std::str::FromStr;
 
 use super::DateTime;
 
+/// A time without a date.
+/// **Important note**: This type does not support time zones.
+/// To ensure that you are working with the clients timezone, you can
+/// use the `local_utc_offset` field in the `MetaData` to translate this
+/// `PrimitiveDateTime` to an `OffsetDateTime` with the correct offset.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Time(time::Time);
 

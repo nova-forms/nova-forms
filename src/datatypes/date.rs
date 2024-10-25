@@ -7,6 +7,8 @@ use std::str::FromStr;
 
 use super::DateTime;
 
+
+/// A date without a time.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Date(time::Date);
 

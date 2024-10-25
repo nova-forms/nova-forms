@@ -8,6 +8,7 @@ use crate::impl_datatype;
 
 use super::Datatype;
 
+/// A datatype representing a non-empty string.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Serialize)]
 pub struct NonEmptyString(String);
 
@@ -40,6 +41,10 @@ impl Datatype for NonEmptyString {
             ("type", "text".into_attribute()),
             ("required", Attribute::Bool(true)),
         ]
+    }
+
+    fn default_debug_value() -> Self {
+        Self::validate("Test".into()).unwrap()
     }
 }
 

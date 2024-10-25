@@ -4,8 +4,14 @@ use crate::{Group, QueryString};
 
 use super::IconButton;
 
+/// Creates a repeatable group of items.
 #[component]
-pub fn Repeatable<F, IV>(#[prop(into)] bind: QueryString, item: F) -> impl IntoView
+pub fn Repeatable<F, IV>(
+    /// The query string that binds the repeatable group to a `Vec`.
+    #[prop(into)] bind: QueryString,
+    /// The item that is repeated.
+    item: F
+) -> impl IntoView
 where
     F: Fn(usize) -> IV + 'static,
     IV: IntoView,

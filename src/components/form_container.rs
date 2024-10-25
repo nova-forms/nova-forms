@@ -1,10 +1,16 @@
 use leptos::*;
 use leptos_meta::*;
 
+
+/// A container for a form.
+/// Adds a header with a logo, title, and subtitle, as well as a footer with the title.
 #[component]
 pub fn FormContainer(
+    /// The URL of the logo to display in the header.
     #[prop(into)] logo: String,
+    /// The title to display in the header and footer.
     #[prop(into)] title: TextProp,
+    /// The subtitle to display in the header.
     #[prop(into)] subtitle: TextProp,
     children: Children,
 ) -> impl IntoView {

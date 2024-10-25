@@ -7,12 +7,15 @@ use server_fn::{
     client::Client, codec::PostUrl, error::NoCustomError, request::ClientReq, ServerFn,
 };
 use time::UtcOffset;
+use ustr::Ustr;
 use std::{fmt::Debug, marker::PhantomData, str::FromStr};
 use thiserror::Error;
 
 use crate::{
-    local_utc_offset, FormDataSerialized, IconButton, IconSelect, InputsContext, Modal, ModalKind, PagesContext, QueryString, TriggerValidation
+    local_utc_offset, FormDataSerialized, InputsContext, Modal, ModalKind, PagesContext, Preview, QueryString, Toolbar, ToolbarLocaleSelect, ToolbarPageSelect, ToolbarPreviewButton, ToolbarSubmitButton
 };
+
+use super::{InputData, PageContext};
 
 #[derive(Error, Debug, Clone)]
 enum SubmitError {
@@ -24,12 +27,89 @@ enum SubmitError {
     ServerError(ServerFnError),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 enum SubmitState {
     Initial,
     Pending,
     Error(SubmitError),
     Success,
+}
+
+pub(crate) type Version = u64;
+
+#[derive(Debug, Clone, Copy)]
+pub struct NovaFormContext {
+    form_id: Ustr,
+    preview: RwSignal<bool>,
+    trigger_validation: RwSignal<Version>,
+    inputs: RwSignal<InputsContext>
+}
+
+impl NovaFormContext {
+    pub fn trigger_validation(&self) -> Result<(), ()> {
+        self.trigger_validation.update(|v| *v += 1);
+
+        if let Some(input) = self.inputs.get().has_errors() {
+            if let Some(pages_context) = use_context::<RwSignal<PagesContext>>() {
+                pages_context.update(|pages_context| pages_context.select(input.page_id.unwrap()));
+            }
+            return Err(());
+        }
+
+        Ok(())
+    }
+
+    pub fn is_preview_mode(&self) -> bool {
+        self.preview.get()
+    }
+
+    pub fn is_edit_mode(&self) -> bool {
+        !self.is_preview_mode()
+    }
+
+    pub fn preview_mode(&self) {
+        self.preview.set(true);
+    }
+
+    pub fn edit_mode(&self) {
+        self.preview.set(false);
+    }
+
+    pub fn form_id(&self) -> &str {
+        self.form_id.as_str()
+    }
+
+    pub(crate) fn version(&self) -> u64 {
+        self.trigger_validation.get_untracked()
+    }
+
+    pub(crate) fn set_error(&self, qs: &QueryString, has_error: bool) {
+        self.inputs.update(|inputs| {
+            inputs.set_error(&qs, has_error);
+        });
+    }
+
+    pub(crate) fn deregister_input(&self, qs: QueryString) {
+        self.inputs.update(|inputs| {
+            inputs.deregister(&qs);
+        });
+    }
+
+    pub(crate) fn register_input(&self, qs: QueryString, label: TextProp) -> Signal<bool> {
+        self.inputs.update(|inputs| {
+            inputs.register(qs, InputData {
+                page_id: use_context::<PageContext>().map(|page| page.id()),
+                label,
+                has_error: false,
+                version: self.version(),
+            });
+        });
+
+        let version = self.version();
+        let trigger_validation = self.trigger_validation;
+
+        Signal::derive(move || trigger_validation.get() > version)
+    }
 }
 
 #[component]
@@ -53,6 +133,9 @@ where
     <L as FromStr>::Err: Debug,
     K: LocaleKeys<Locale = L> + 'static,
 {
+    if cfg!(debug_assertions) {
+        logging::log!("debug mode enabled, prefilling input fields with valid data");
+    }
     //let (local_storage, set_local_storage, _) = use_local_storage::<Option<FormDataSerialized>, FromToStringCodec>("form_data");
     //logging::log!("Form data local storage: {:?}, provided {:?}", local_storage.get(), form_data);
 
@@ -61,9 +144,14 @@ where
     provide_context(bind.clone());
     provide_context(form_data_serialized.clone());
 
-    let (preview_mode, set_preview_mode) = create_signal(false);
+    let preview = create_rw_signal(false);
+    let form_id = Ustr::from("nova-form");
+    let inputs = create_rw_signal(InputsContext::new());
+    let trigger_validation = create_rw_signal(0);
+    let nova_form_context = NovaFormContext { preview, form_id, trigger_validation, inputs };
+    provide_context(nova_form_context);
+
     let (submit_state, set_submit_state) = create_signal(SubmitState::Initial);
-    let (trigger_validation, set_trigger_validation) = create_signal(TriggerValidation::None);
 
     let on_submit_value = on_submit.value();
     create_effect(move |_| match on_submit_value.get() {
@@ -71,67 +159,6 @@ where
         Some(Err(err)) => set_submit_state.set(SubmitState::Error(SubmitError::ServerError(err))),
         None => {}
     });
-
-    let (pages_context, set_pages_context) = create_signal(PagesContext::default());
-    provide_context((pages_context, set_pages_context));
-
-    let (inputs_context, set_inputs_context) =
-        create_signal(InputsContext::new(trigger_validation));
-    provide_context((inputs_context, set_inputs_context));
-
-    let children = children();
-
-    let pages = pages_context
-        .get_untracked()
-        .pages()
-        .iter()
-        .map(|page| (page.id(), page.label().clone()))
-        .collect::<Vec<_>>();
-
-    let locales = L::get_all()
-        .iter()
-        .map(|locale| {
-            let id = &locale.as_icu_locale().id;
-            let language_str = match id.language.as_str() {
-                "en" => "English",
-                "de" => "Deutsch",
-                "fr" => "Français",
-                "it" => "Italiano",
-                "es" => "Español",
-                other => other,
-            };
-            let region = id.region.as_ref();
-            let region_str = match region {
-                Some(region) => match region.as_str() {
-                    "US" => "🇺🇸",
-                    "GB" => "🇬🇧",
-                    "DE" => "🇩🇪",
-                    "CH" => "🇨🇭",
-                    "FR" => "🇫🇷",
-                    "IT" => "🇮🇹",
-                    "ES" => "🇪🇸",
-                    other => other,
-                },
-                None => match id.language.as_str() {
-                    "en" => "🇺🇸",
-                    "de" => "🇩🇪",
-                    "fr" => "🇫🇷",
-                    "it" => "🇮🇹",
-                    "es" => "🇪🇸",
-                    _ => "",
-                },
-            };
-            (
-                *locale,
-                if region_str.is_empty() {
-                    format!("{}", language_str)
-                } else {
-                    format!("{} {}", region_str, language_str)
-                }
-                .into(),
-            )
-        })
-        .collect::<Vec<_>>();
 
     let value = on_submit.value();
     
@@ -164,12 +191,20 @@ where
                 return;
             }
 
-            set_trigger_validation.set(TriggerValidation::All);
-            if let Some(input_data) = inputs_context.get().has_errors() {
+            //trigger_validation.set(Instant::now());
+            /*if let Some(input_data) = inputs_context.get().has_errors() {
                 set_submit_state.set(SubmitState::Error(SubmitError::ValidationError));
-                set_pages_context.update(|pages_context| pages_context.select(input_data.page_id.clone()));
+
+                if let Some(pages_context) = use_context::<RwSignal<PagesContext>>() {
+                    pages_context.update(|pages_context| pages_context.select(input_data.page_id.clone()));
+                }
+                return;
+            }*/
+            if nova_form_context.trigger_validation().is_err() {
+                set_submit_state.set(SubmitState::Error(SubmitError::ValidationError));
                 return;
             }
+
 
 
             match ServFn::from_event(&ev) {
@@ -195,136 +230,23 @@ where
     };
 
     view! {
-        <form id="nova-form" novalidate action="" on:submit=on_submit_inner class=move || if preview_mode.get() { "hidden" } else { "edit" }>
-            {children}
+        <form id=form_id.as_str() novalidate action="" on:submit=on_submit_inner class=move || if preview.get() { "hidden" } else { "visible" }>
+            {children()}
 
+            // Add the metadata using hidden fields.
             <input type="hidden" name=bind_meta_data.clone().add_key("locale") value={move || i18n.get_locale().to_string()} />
             <input type="hidden" name=bind_meta_data.clone().add_key("local_utc_offset") value={move || local_utc_offset().to_string()} />
-
-            <div>
-                <IconButton
-                    label="Previous Page"
-                    icon="arrow_back"
-                    on:click = move |_| set_pages_context.update(|pages_context| pages_context.prev())
-                    disabled=Signal::derive(move || pages_context.get().is_first_selected()) />
-                <IconButton label="Next Page" icon="arrow_forward"
-                    on:click = move |_| {
-                        set_pages_context.update(|pages_context| pages_context.next());
-                     }
-                    disabled=Signal::derive(move || pages_context.get().is_last_selected()) />
-            </div>
         </form>
 
-        <iframe scrolling="no" class=move || if !preview_mode.get() { "hidden" } else { "edit" } id="preview"></iframe>
+        <Preview/>
 
-        <script>r#"
-            function isIframe() {
-                return window.self !== window.top;
-            }
+        <Toolbar>
+            <ToolbarPageSelect/>
+            <ToolbarLocaleSelect i18n=i18n/>
+            <ToolbarPreviewButton/>
+            <ToolbarSubmitButton/>
+        </Toolbar>
 
-            function preparePreview() {
-                // Populate the values to the value attributes.
-                document.querySelectorAll("input").forEach((input) => {
-                    input.setAttribute("value", input.value);
-                });
-
-                // Populate the preview iframe with the current document.
-                const preview = document.getElementById("preview");
-                preview.srcdoc = document.documentElement.outerHTML;
-            }
-
-            function preparePreviewInsideIframe() {
-                // Add the paged.js polyfill.
-                let script = document.createElement("script");
-                script.src = "https://unpkg.com/pagedjs/dist/paged.polyfill.js";
-                document.head.appendChild(script);
-
-                // Hide the body while the preview is being prepared.
-                document.body.style.visibility = "hidden";
-                document.body.style.backgroundColor = "white";
-                window.PagedConfig = {
-                    after: (flow) => {
-                        document.body.removeAttribute("style");
-                        parent.resizeIframe();
-                    },
-                };
-                
-                // Disable all form inputs.
-                document.querySelectorAll("input").forEach((input) => {
-                    input.disabled = true;
-                });
-            }
-
-            if (isIframe()) {
-                preparePreviewInsideIframe();
-            } else {
-                window.addEventListener("resize", resizeIframe);
-            }
-
-            function resizeIframe() {
-                const preview = document.getElementById("preview");
-                let scaleFactor =  Math.min(1, (window.innerWidth / preview.contentWindow.document.body.scrollWidth));
-                if (scaleFactor < 1) {
-                    preview.style.width = "210mm";
-                    preview.style.transformOrigin = "top left";
-                    preview.style.transform = "scale(" + scaleFactor + ")";
-                    preview.style.marginRight = -210 * (1 - scaleFactor) + "mm";
-                    preview.style.height = preview.contentWindow.document.body.scrollHeight + "px";
-                    preview.style.marginBottom = -preview.contentWindow.document.body.scrollHeight * (1 - scaleFactor) + "px";
-                } else {
-                    preview.removeAttribute("style");
-                    preview.style.height = preview.contentWindow.document.body.scrollHeight + "px";
-                }
-
-            }
-        "#</script>
-
-        <aside id="nova-form-actions" class="ui">
-            <Show when=move || { pages_context.get().len() > 1 && !preview_mode.get() } >
-                <IconSelect
-                    id="menu"
-                    label="Menu"
-                    icon="menu"
-                    values=pages.clone()
-                    value=move || pages_context.get().selected().expect("page index out of bounds")
-                    on_change=move |tab_id| set_pages_context.update(|pages_context| pages_context.select(tab_id)) />
-            </Show>
-
-            <Show when=move || !preview_mode.get() >
-                <IconSelect
-                    id="language"
-                    label="Language"
-                    icon="translate"
-                    values=locales.clone()
-                    value=move || i18n.get_locale()
-                    on_change=move |locale| i18n.set_locale(locale) />
-            </Show>
-
-            {
-                move || if preview_mode.get() {
-                    view! {
-                        <IconButton label="Edit" icon="edit" on:click=move |_| {
-                            set_preview_mode.set(false);
-                        } />
-                    }
-                } else {
-                    view! {
-                        <IconButton label="Preview" icon="visibility" on:click=move |_| {
-                            js_sys::eval("preparePreview();").ok();
-                            set_preview_mode.set(true)
-                        } />
-                    }
-                }
-            }
-
-            <IconButton
-                button_type="submit"
-                label="Submit"
-                icon="send"
-                form="nova-form" />
-
-
-        </aside>
 
         { move || match submit_state.get() {
             SubmitState::Initial => view! {}.into_view(),

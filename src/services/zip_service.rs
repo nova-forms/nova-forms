@@ -46,3 +46,4 @@ async fn zip_service(zip: String) -> Result<Option<String>, ServerFnError> {
 
     Ok(Some(zips.first().unwrap().city18.to_owned()))
 }
+ 

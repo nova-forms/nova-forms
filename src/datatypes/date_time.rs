@@ -19,6 +19,11 @@ pub(crate) fn local_utc_offset() -> UtcOffset {
     }
 }
 
+/// A date and time.
+/// **Important note**: This type does not support time zones.
+/// To ensure that you are working with the clients timezone, you can
+/// use the `local_utc_offset` field in the `MetaData` to translate this
+/// `PrimitiveDateTime` to an `OffsetDateTime` with the correct offset.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct DateTime(time::PrimitiveDateTime);
 

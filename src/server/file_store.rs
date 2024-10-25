@@ -2,12 +2,14 @@ use crate::{FileId, FileInfo};
 use sqlx::{sqlite::SqliteConnectOptions, Error, SqlitePool};
 use std::str::FromStr;
 
+/// A database storage for files.
 #[derive(Clone)]
 pub struct FileStore {
     pool: SqlitePool,
 }
 
 impl FileStore {
+    /// Tries to create a new `FileStore`.
     pub async fn new() -> Result<Self, Error> {
         let mut path = std::env::current_dir().unwrap();
         path.push("data.db");
@@ -35,6 +37,7 @@ impl FileStore {
         Ok(Self { pool })
     }
 
+    /// Insert a file into the database, returns a corresponding `FileId`.
     pub async fn insert(&self, file_info: FileInfo, data: Vec<u8>) -> Result<FileId, sqlx::Error> {
         let id = FileId::new();
 
@@ -54,6 +57,7 @@ impl FileStore {
         Ok(id)
     }
 
+    /// Get a file from the database by its `FileId`.
     pub async fn get(&self, id: FileId) -> Result<Option<(FileInfo, Vec<u8>)>, Error> {
         let record: Option<(String, Option<String>, Vec<u8>)> = sqlx::query_as(
             r#"

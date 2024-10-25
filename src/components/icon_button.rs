@@ -2,6 +2,7 @@ use leptos::*;
 
 use crate::Icon;
 
+/// A button that only contains an icon.
 #[component]
 pub fn IconButton(
     #[prop(optional, into)] button_type: Option<String>,

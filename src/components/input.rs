@@ -1,5 +1,5 @@
 use super::PageId;
-use crate::{Datatype, PageContext, QueryString, TranslationProvider};
+use crate::{Datatype, NovaFormContext, QueryString, TranslationProvider};
 use leptos::*;
 
 mod context {
@@ -8,18 +8,12 @@ mod context {
     use leptos::*;
     use std::{borrow::Cow, collections::HashMap, str::FromStr};
 
-    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-    pub(crate) enum TriggerValidation {
-        None,
-        All,
-        Page(PageId),
-    }
-
     #[derive(Debug, Clone)]
     pub(crate) struct InputData {
-        pub(crate) page_id: PageId,
+        pub(crate) page_id: Option<PageId>,
         pub(crate) label: TextProp,
         pub(crate) has_error: bool,
+        pub(crate) version: u64,
     }
 
     #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -42,14 +36,12 @@ mod context {
     #[derive(Debug, Clone)]
     pub(crate) struct InputsContext {
         inputs: HashMap<QueryString, InputData>,
-        pub trigger_validation: ReadSignal<TriggerValidation>,
     }
 
     impl InputsContext {
-        pub fn new(trigger_validation: ReadSignal<TriggerValidation>) -> Self {
+        pub fn new() -> Self {
             Self {
                 inputs: HashMap::new(),
-                trigger_validation,
             }
         }
 
@@ -68,89 +60,68 @@ mod context {
         pub fn has_errors(&self) -> Option<&InputData> {
             self.inputs.values().find(|data| data.has_error)
         }
-
-        pub fn has_errors_on_page(&self, page_id: PageId) -> Option<&InputData> {
-            self.inputs
-                .values()
-                .find(|data| data.page_id == page_id && data.has_error)
-        }
     }
 }
 
 pub(crate) use context::*;
 
+
+/// A component that renders an input field.
+/// It takes a datatype as a type parameter and automatically handles parsing and validation.
 #[component]
 pub fn Input<T>(
+    /// The label of the input field.
     #[prop(into)] label: TextProp,
+    /// The query string that binds the input field to the form data.
     #[prop(into)] bind: QueryString,
+    /// The placeholder text of the input field.
     #[prop(optional, into)] placeholder: Option<T>,
+    #[prop(optional, into)] debug_value: Option<T>,
+    /// The initial value of the input field.
     #[prop(optional, into)] value: MaybeProp<T>,
 ) -> impl IntoView
 where
     T: Datatype,
-{
+{    
     let (qs, form_value) = bind.form_value::<T>();
-    let (show_error, set_show_error) = create_signal(false);
 
-    let (raw_value, set_raw_value) = create_signal(
-        value
-            .get_untracked()
-            .or_else(|| form_value.clone().ok())
-            .map(|v| v.to_string())
-            .unwrap_or_default(),
-    );
+    let (input_value, set_input_value) = create_signal(None);
 
-    create_effect(move |_| {
-        if let Some(value) = value.get() {
-            set_raw_value.set(value.to_string());
-            set_show_error.set(true);
+    let raw_value = Signal::derive(move || {
+        if cfg!(debug_assertions) {
+            input_value.get()
+                .unwrap_or_else(|| value.get()
+                    .or_else(|| form_value.clone().ok())
+                    .or_else(|| debug_value.clone())
+                    .unwrap_or_else(|| T::default_debug_value())
+                    .to_string())
+        } else {
+            input_value.get()
+                .unwrap_or_else(|| value.get()
+                    .or_else(|| form_value.clone().ok())
+                    .map(|v| v.to_string())
+                    .unwrap_or_default())
         }
     });
 
-    let page_context = expect_context::<PageContext>();
-    let (inputs_context, set_inputs_context) =
-        expect_context::<(ReadSignal<InputsContext>, WriteSignal<InputsContext>)>();
+    let nova_form_context = expect_context::<NovaFormContext>();
+    let validation_trigger = nova_form_context.register_input(qs.clone(), label.clone());
 
-    let page_id = page_context.id().clone();
-
-    let page_id_clone = page_id.clone();
-    create_effect(move |_| {
-        let trigger_validation = inputs_context.get().trigger_validation.get();
-        let show_error = match trigger_validation {
-            TriggerValidation::None => false,
-            TriggerValidation::All => true,
-            TriggerValidation::Page(ref page_id) => page_id == &page_id_clone,
-        };
-
-        if show_error {
-            set_show_error.set(true);
-        }
+    let show_error = Signal::derive(move || {
+        input_value.get().is_some() || validation_trigger.get()
     });
 
     let parsed_value = Signal::derive(move || T::from_str(&raw_value.get()));
 
-    set_inputs_context.update(|inputs_context| {
-        inputs_context.register(
-            qs.clone(),
-            InputData {
-                page_id: page_id.clone(),
-                label: label.clone(),
-                has_error: false,
-            },
-        )
-    });
-
     let qs_clone = qs.clone();
     on_cleanup(move || {
-        set_inputs_context.update(|inputs_context| inputs_context.deregister(&qs_clone));
+        nova_form_context.deregister_input(qs_clone);
     });
 
     let qs_clone = qs.clone();
     create_effect(move |_| {
         let qs = qs_clone.clone();
-        set_inputs_context.update(move |inputs_context| {
-            inputs_context.set_error(&qs, parsed_value.get().is_err());
-        });
+        nova_form_context.set_error(&qs, parsed_value.get().is_err());
     });
 
     let input_elem = T::attributes()
@@ -161,8 +132,7 @@ where
         .attr("value", move || raw_value.get())
         .attr("placeholder", placeholder.as_ref().map(T::to_string))
         .on(ev::input, move |ev| {
-            set_raw_value.set(event_target_value(&ev));
-            set_show_error.set(true);
+            set_input_value.set(Some(event_target_value(&ev)));
         });
 
     let translate_errors = use_context::<TranslationProvider<T::Error>>();

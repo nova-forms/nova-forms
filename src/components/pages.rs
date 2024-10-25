@@ -1,31 +1,38 @@
 use leptos::*;
+use crate::IconButton;
 
 mod context {
     use leptos::TextProp;
-    use std::{borrow::Cow, str::FromStr};
+    use ustr::Ustr;
+    use std::str::FromStr;
 
     #[derive(Debug, Clone)]
     pub struct PageData {
         id: PageId,
         label: TextProp,
+        idx: usize,
     }
 
     impl PageData {
-        pub fn new(id: PageId, label: TextProp) -> Self {
-            Self { id, label }
+        fn new(id: PageId, label: TextProp, idx: usize) -> Self {
+            Self { id, label, idx }
         }
 
         pub fn id(&self) -> PageId {
-            self.id.clone()
+            self.id
         }
 
         pub fn label(&self) -> TextProp {
             self.label.clone()
         }
+
+        pub fn idx(&self) -> usize {
+            self.idx
+        }
     }
 
-    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-    pub struct PageId(Cow<'static, str>);
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+    pub struct PageId(Ustr);
 
     impl ToString for PageId {
         fn to_string(&self) -> String {
@@ -37,13 +44,13 @@ mod context {
         type Err = ();
 
         fn from_str(s: &str) -> Result<Self, Self::Err> {
-            Ok(PageId(Cow::Owned(s.to_owned())))
+            Ok(PageId(Ustr::from(s)))
         }
     }
 
     impl PageId {
         pub fn new(id: &'static str) -> Self {
-            Self(Cow::Borrowed(id))
+            Self(Ustr::from(id))
         }
     }
 
@@ -58,7 +65,7 @@ mod context {
         }
 
         pub fn id(&self) -> PageId {
-            self.id.clone()
+            self.id
         }
     }
 
@@ -69,8 +76,8 @@ mod context {
     }
 
     impl PagesContext {
-        pub fn register(&mut self, data: PageData) {
-            self.pages.push(data);
+        pub fn register(&mut self, label: TextProp, id: PageId) {
+            self.pages.push(PageData::new(id, label, self.pages.len()));
         }
 
         pub fn is_selected(&self, id: PageId) -> bool {
@@ -125,59 +132,110 @@ mod context {
 
 pub(crate) use context::*;
 
-/*
 #[component]
-pub fn Pages(children: Children) -> impl IntoView {
-    let (pages_context, set_pages_context) = create_signal(PagesContext::default());
+pub fn Pages(
+    children: Children,
+) -> impl IntoView
+where
+{
 
-    provide_context((pages_context, set_pages_context));
+    let pages = create_rw_signal(PagesContext::default());
+    provide_context(pages);
 
     let children = children();
 
     view! {
         <div class="pages">
-            <nav>
-                <For
-                    each=move || pages_context.get().tabs.clone().into_iter().enumerate()
-                    key=|(_, tab)| tab.id
-                    children = move |(_i, tab)| {
-                        view! {
-                            <button type="button" on:click = move |_| set_pages_context.update(|pages_context| pages_context.select(tab.id)) disabled=move || pages_context.get().is_selected(tab.id)>{tab.label}</button>
-                        }
-                    }
-                />
-            </nav>
             {children}
-            <div>
-                <Show when=move || !pages_context.get().first_selected() >
-                    <button type="button" on:click = move |_| set_pages_context.update(|pages_context| pages_context.prev()) >"Previous Page"</button>
-                </Show>
-                <Show when=move || !pages_context.get().last_selected() >
-                    <button type="button" on:click = move |_| set_pages_context.update(|pages_context| pages_context.next()) >"Next Page"</button>
-                </Show>
-            </div>
-
         </div>
     }
 }
-*/
 
+
+/// Creates a new page in the form.
 #[component]
-pub fn Page(id: &'static str, #[prop(into)] label: TextProp, children: Children) -> impl IntoView {
+pub fn Page(
+    /// The id of the page.
+    id: &'static str,
+    /// The label of the page.
+    #[prop(into)] label: TextProp,
+    /// The contents of the page.
+    children: Children
+) -> impl IntoView {
     let id = PageId::new(id);
 
-    let (pages_context, set_pages_context) =
-        expect_context::<(ReadSignal<PagesContext>, WriteSignal<PagesContext>)>();
+    let pages_context = expect_context::<RwSignal<PagesContext>>();
 
-    set_pages_context
-        .update(|pages_context| pages_context.register(PageData::new(id.clone(), label)));
+    pages_context.update(|pages_context| pages_context.register(label, id));
 
     view! {
-        <Provider value=PageContext::new(id.clone())>
-            <div class=move || if pages_context.get().is_selected(id.clone()) { "page selected" } else { "page hidden" } >
+        <Provider value=PageContext::new(id)>
+            <div class=move || if pages_context.get().is_selected(id) { "page selected" } else { "page hidden" } >
                 {children()}
             </div>
         </Provider>
 
+    }
+}
+
+
+/// Creates a new page in the form.
+#[component]
+pub fn PageStepper(
+) -> impl IntoView {
+    let pages_context = expect_context::<RwSignal<PagesContext>>();
+
+    view! {
+        <div class="stepper">
+            <IconButton
+                label="Previous Page"
+                icon="arrow_back"
+                on:click = move |_| pages_context.update(|pages| pages.prev())
+                disabled=Signal::derive(move || pages_context.get().is_first_selected()) />
+            <For 
+                each={ move || {
+                    let pages = pages_context.get().pages().iter().cloned().collect::<Vec<_>>();
+                    pages
+                } }
+                key=|page| page.id()
+                children=move |page| {
+                    let page_id = page.id();
+                    view !{
+                        <button class="icon-button"
+                            on:click={move |_| pages_context.update(|pages_context| pages_context.select(page_id))}
+                            disabled={move || pages_context.get().is_selected(page_id)}
+                        >
+                            <span>{move || page.idx() + 1}</span>
+                        </button>
+                    }
+                }
+            />
+            <IconButton label="Next Page" icon="arrow_forward"
+                on:click = move |_| {
+                    pages_context.update(|pages_context| pages_context.next());
+                }
+                disabled=Signal::derive(move || pages_context.get().is_last_selected()) />
+        </div>
+       
+    }
+}
+
+#[component]
+pub fn PagePrevNextButtons() -> impl IntoView {
+    let pages_context = expect_context::<RwSignal<PagesContext>>();
+
+    view! {
+        <div>
+            <IconButton
+                label="Previous Page"
+                icon="arrow_back"
+                on:click = move |_| pages_context.update(|pages| pages.prev())
+                disabled=Signal::derive(move || pages_context.get().is_first_selected()) />
+            <IconButton label="Next Page" icon="arrow_forward"
+                on:click = move |_| {
+                    pages_context.update(|pages_context| pages_context.next());
+                }
+                disabled=Signal::derive(move || pages_context.get().is_last_selected()) />
+        </div>
     }
 }
