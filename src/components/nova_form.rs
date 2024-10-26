@@ -230,61 +230,80 @@ where
     };
 
     view! {
-        <form id=form_id.as_str() novalidate action="" on:submit=on_submit_inner class=move || if preview.get() { "hidden" } else { "visible" }>
+        <form
+            id=form_id.as_str()
+            novalidate
+            action=""
+            on:submit=on_submit_inner
+            class=move || if preview.get() { "hidden" } else { "visible" }
+        >
             {children()}
 
             // Add the metadata using hidden fields.
-            <input type="hidden" name=bind_meta_data.clone().add_key("locale") value={move || i18n.get_locale().to_string()} />
-            <input type="hidden" name=bind_meta_data.clone().add_key("local_utc_offset") value={move || local_utc_offset().to_string()} />
+            <input
+                type="hidden"
+                name=bind_meta_data.clone().add_key("locale")
+                value=move || i18n.get_locale().to_string()
+            />
+            <input
+                type="hidden"
+                name=bind_meta_data.clone().add_key("local_utc_offset")
+                value=move || local_utc_offset().to_string()
+            />
         </form>
 
-        <Preview/>
+        <Preview />
 
         <Toolbar>
-            <ToolbarPageSelect/>
-            <ToolbarLocaleSelect i18n=i18n/>
-            <ToolbarPreviewButton/>
-            <ToolbarSubmitButton/>
+            <ToolbarPageSelect />
+            <ToolbarLocaleSelect i18n=i18n />
+            <ToolbarPreviewButton />
+            <ToolbarSubmitButton />
         </Toolbar>
 
-
-        { move || match submit_state.get() {
+        {move || match submit_state.get() {
             SubmitState::Initial => view! {}.into_view(),
-            SubmitState::Pending => view! {
-                <Modal kind=ModalKind::Info title="Submission" close=move |()| set_submit_state.set(SubmitState::Initial)>
-                    "Your form is being submitted."
-                </Modal>
-            }.into_view(),
-            SubmitState::Error(err) => view! {
-                <Modal kind=ModalKind::Error title="Submission" close=move |()| set_submit_state.set(SubmitState::Initial)>
-                    {
-                        if cfg!(debug_assertions) {
+            SubmitState::Pending => {
+                view! {
+                    <Modal
+                        kind=ModalKind::Info
+                        title="Submission"
+                        close=move |()| set_submit_state.set(SubmitState::Initial)
+                    >
+                        "Your form is being submitted."
+                    </Modal>
+                }
+                    .into_view()
+            }
+            SubmitState::Error(err) => {
+                view! {
+                    <Modal
+                        kind=ModalKind::Error
+                        title="Submission"
+                        close=move |()| set_submit_state.set(SubmitState::Initial)
+                    >
+                        {if cfg!(debug_assertions) {
                             format!("Your form could not be submitted: {err}.")
                         } else {
                             format!("Your form could not be submitted.")
-                        }
-                    }
-                </Modal>
-            }.into_view(),
-            SubmitState::Success => view! {
-                <Modal kind=ModalKind::Success title="Submission" close=move |()| set_submit_state.set(SubmitState::Initial)>
-                    "Your form was successfully submitted."
-                </Modal>
-            }.into_view(),
-        } }
-
-
-        /*<IconButton label="Download" icon="download" on:click=move |_| {
-            /*web_sys::window().and_then(|w| w.print().ok());*/
-            js_sys::eval(r#"
-                preparePreview();
-                setTimeout(function() {
-                    const preview = document.getElementById('preview');
-                    preview.contentWindow.print();
-                }, 5000);
-            "#).ok();
-        } />*/
-
+                        }}
+                    </Modal>
+                }
+                    .into_view()
+            }
+            SubmitState::Success => {
+                view! {
+                    <Modal
+                        kind=ModalKind::Success
+                        title="Submission"
+                        close=move |()| set_submit_state.set(SubmitState::Initial)
+                    >
+                        "Your form was successfully submitted."
+                    </Modal>
+                }
+                    .into_view()
+            }
+        }}
     }
 }
 

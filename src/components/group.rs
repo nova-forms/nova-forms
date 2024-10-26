@@ -14,9 +14,7 @@ pub fn Group(
 
     view! {
         <Provider value=qs>
-            <Provider value=form_data>
-                {children()}
-            </Provider>
+            <Provider value=form_data>{children()}</Provider>
         </Provider>
     }
 }

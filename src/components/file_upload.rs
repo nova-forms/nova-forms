@@ -53,8 +53,10 @@ pub fn FileUpload(
     };
 
     view! {
-        <label class="button icon-button" for=qs.to_string()><Icon label="Upload" icon="upload" /></label>
-        <input id=qs.to_string() type="file" class="sr-hidden" on:input=on_input/>
+        <label class="button icon-button" for=qs.to_string()>
+            <Icon label="Upload" icon="upload" />
+        </label>
+        <input id=qs.to_string() type="file" class="sr-hidden" on:input=on_input />
         <ul>
             <For
                 each=move || file_info.get().into_iter().enumerate()
@@ -65,15 +67,13 @@ pub fn FileUpload(
 
                     view! {
                         <li>
-                            { format!("{}", file_info.file_name) }
-                            <input type="hidden" name=qs value=file_id.to_string()></input>
+                            {format!("{}", file_info.file_name)}
+                            <input type="hidden" name=qs value=file_id.to_string() />
                         </li>
-
                     }
                 }
             />
         </ul>
-
     }
 }
 

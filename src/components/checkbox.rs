@@ -1,87 +1,21 @@
-use super::PageId;
 use crate::{Datatype, NovaFormContext, QueryString, TranslationProvider};
 use leptos::*;
-
-mod context {
-    use super::PageId;
-    use crate::QueryString;
-    use leptos::*;
-    use std::{borrow::Cow, collections::HashMap, str::FromStr};
-
-    #[derive(Debug, Clone)]
-    pub(crate) struct InputData {
-        pub(crate) page_id: Option<PageId>,
-        pub(crate) label: TextProp,
-        pub(crate) has_error: bool,
-        pub(crate) version: u64,
-    }
-
-    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-    pub(crate) struct InputId(Cow<'static, str>);
-
-    impl ToString for InputId {
-        fn to_string(&self) -> String {
-            self.0.to_string()
-        }
-    }
-
-    impl FromStr for InputId {
-        type Err = ();
-
-        fn from_str(s: &str) -> Result<Self, Self::Err> {
-            Ok(InputId(Cow::Owned(s.to_owned())))
-        }
-    }
-
-    #[derive(Debug, Clone)]
-    pub(crate) struct InputsContext {
-        inputs: HashMap<QueryString, InputData>,
-    }
-
-    impl InputsContext {
-        pub fn new() -> Self {
-            Self {
-                inputs: HashMap::new(),
-            }
-        }
-
-        pub fn register(&mut self, qs: QueryString, data: InputData) {
-            self.inputs.insert(qs, data);
-        }
-
-        pub fn deregister(&mut self, qs: &QueryString) {
-            self.inputs.remove(qs);
-        }
-
-        pub fn set_error(&mut self, qs: &QueryString, has_error: bool) {
-            self.inputs.get_mut(qs).expect("cannot set error").has_error = has_error;
-        }
-
-        pub fn has_errors(&self) -> Option<&InputData> {
-            self.inputs.values().find(|data| data.has_error)
-        }
-    }
-}
-
-pub(crate) use context::*;
-
 
 /// A component that renders an input field.
 /// It takes a datatype as a type parameter and automatically handles parsing and validation.
 #[component]
-pub fn Input<T>(
+pub fn Checkbox<T>(
     /// The label of the input field.
     #[prop(into)] label: TextProp,
     /// The query string that binds the input field to the form data.
     #[prop(into)] bind: QueryString,
     /// The placeholder text of the input field.
-    #[prop(optional, into)] placeholder: Option<T>,
     #[prop(optional, into)] debug_value: Option<T>,
     /// The initial value of the input field.
     #[prop(optional, into)] value: MaybeProp<T>,
 ) -> impl IntoView
 where
-    T: Datatype,
+    T: Datatype<Inner = bool> + Into<bool>,
 {    
     let (qs, form_value) = bind.form_value::<T>();
 
@@ -94,12 +28,12 @@ where
                     .or_else(|| form_value.clone().ok())
                     .or_else(|| debug_value.clone())
                     .unwrap_or_else(|| T::default_debug_value())
-                    .to_string())
+                    .into())
         } else {
             input_value.get()
                 .unwrap_or_else(|| value.get()
                     .or_else(|| form_value.clone().ok())
-                    .map(|v| v.to_string())
+                    .map(|v| v.into())
                     .unwrap_or_default())
         }
     });
@@ -111,7 +45,7 @@ where
         input_value.get().is_some() || validation_trigger.get()
     });
 
-    let parsed_value = Signal::derive(move || T::from_str(&raw_value.get()));
+    let parsed_value = Signal::derive(move || T::validate(raw_value.get()));
 
     let qs_clone = qs.clone();
     on_cleanup(move || {
@@ -124,29 +58,19 @@ where
         nova_form_context.set_error(&qs, parsed_value.get().is_err());
     });
 
-    /*let is_checkbox = T::attributes()
-        .iter()
-        .any(|(name, value)| *name == "type" && *value == Attribute::String(Oco::Borrowed("checkbox")));*/
-
     let input_elem = T::attributes()
         .into_iter()
         .fold(html::input(), |el, (name, value)| el.attr(name, value))
+        .attr("type", "checkbox")
         .attr("id", qs.to_string())
         .attr("name", qs.to_string())
-        .attr("value", move || raw_value.get())
-        .attr("placeholder", placeholder.as_ref().map(T::to_string))
+        .attr("checked", move || raw_value.get())
+        .attr("value", move || raw_value.get().to_string())
         .on(ev::input, move |ev| {
-            /*if is_checkbox {
-                logging::log!("input event: {}", event_target_checked(&ev));
-                set_input_value.set(Some(event_target_checked(&ev).to_string()));
-            } else {
-                logging::log!("input event: {}", event_target_value(&ev));
-                set_input_value.set(Some(event_target_value(&ev)));
-            }*/
-            set_input_value.set(Some(event_target_value(&ev)));
+            set_input_value.set(Some(event_target_checked(&ev)));
         });
 
-    let translate_errors = use_context::<TranslationProvider<T::Error>>();
+    let translate_errors = use_context::<TranslationProvider<<T as Datatype>::Error>>();
 
     view! {
         <div
@@ -154,8 +78,11 @@ where
             class:error=move || parsed_value.get().is_err() && show_error.get()
             class:ok=move || parsed_value.get().is_ok() && show_error.get()
         >
-            <label for=qs.to_string()>{label}</label>
-            {input_elem}
+            <label for=qs.to_string()>
+                {input_elem}
+                <span class="custom-checkbox"></span>
+                <span class="custom-checkbox-label">{label}</span>
+            </label>
             {move || {
                 if let (Err(err), Some(translate_errors), true) = (
                     parsed_value.get(),

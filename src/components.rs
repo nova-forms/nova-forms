@@ -12,6 +12,7 @@ mod repeatable;
 mod select;
 mod toolbar;
 mod preview;
+mod checkbox;
 
 pub use file_upload::*;
 pub use form_container::*;
@@ -25,5 +26,6 @@ pub use nova_form::*;
 pub use pages::*;
 pub use repeatable::*;
 pub use select::*;
+pub use checkbox::*;
 pub(crate) use toolbar::*;
 pub(crate) use preview::*;

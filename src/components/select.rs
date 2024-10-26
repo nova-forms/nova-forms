@@ -23,10 +23,8 @@ where
         <For
             each=move || values.clone()
             key=|(value, _)| value.clone()
-            children = move |(v, d)| {
-                view! {
-                    <option value=v.to_string()>{format!("{d}")}</option>
-                }
+            children=move |(v, d)| {
+                view! { <option value=v.to_string()>{format!("{d}")}</option> }
             }
         />
     };

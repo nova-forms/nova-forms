@@ -24,18 +24,22 @@ where
         <Group bind=bind>
             <div class="repeatable">
                 <For
-                    each= move || (0..size.get())
-                    key= |i| *i
-                    children = move |i| {
+                    each=move || (0..size.get())
+                    key=|i| *i
+                    children=move |i| {
                         view! {
-                            <Group bind=QueryString::default().add_index(i)>
-                                {item.with_value(|item| item(i))}
-                            </Group>
+                            <Group bind=QueryString::default()
+                                .add_index(i)>{item.with_value(|item| item(i))}</Group>
                         }
                     }
                 />
-                <IconButton on:click = move |_| set_size.update(|i| *i -= 1) label="Remove" icon="remove" disabled=Signal::derive(move || size.get() == 0) />
-                <IconButton on:click = move |_| set_size.update(|i| *i += 1) label="Add" icon="add" />
+                <IconButton
+                    on:click=move |_| set_size.update(|i| *i -= 1)
+                    label="Remove"
+                    icon="remove"
+                    disabled=Signal::derive(move || size.get() == 0)
+                />
+                <IconButton on:click=move |_| set_size.update(|i| *i += 1) label="Add" icon="add" />
             </div>
         </Group>
     }

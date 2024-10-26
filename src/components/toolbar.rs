@@ -10,11 +10,7 @@ use crate::{prepare_preview, IconButton, IconSelect, NovaFormContext, PagesConte
 pub fn Toolbar(
     children: Children,
 ) -> impl IntoView {
-    view! {
-        <aside id="toolbar" class="ui">  
-            {children()}
-        </aside>
-    }
+    view! { <aside id="toolbar">{children()}</aside> }
 }
 
 #[component]
@@ -23,10 +19,11 @@ pub fn ToolbarSubmitButton() -> impl IntoView {
 
     view! {
         <IconButton
-                button_type="submit"
-                label="Submit"
-                icon="send"
-                form=nova_form_context.form_id() />
+            button_type="submit"
+            label="Submit"
+            icon="send"
+            form=nova_form_context.form_id()
+        />
     }
 }
 
@@ -35,18 +32,28 @@ pub fn ToolbarPreviewButton() -> impl IntoView {
     let nova_form_context = expect_context::<NovaFormContext>();
 
     view! {
-        {move || if nova_form_context.is_preview_mode() {
-            view! {
-                <IconButton label="Edit" icon="edit" on:click=move |_| {
-                    nova_form_context.edit_mode();
-                } />
-            }
-        } else {
-            view! {
-                <IconButton label="Preview" icon="visibility" on:click=move |_| {
-                    prepare_preview();
-                    nova_form_context.preview_mode();
-                } />
+        {move || {
+            if nova_form_context.is_preview_mode() {
+                view! {
+                    <IconButton
+                        label="Edit"
+                        icon="edit"
+                        on:click=move |_| {
+                            nova_form_context.edit_mode();
+                        }
+                    />
+                }
+            } else {
+                view! {
+                    <IconButton
+                        label="Preview"
+                        icon="visibility"
+                        on:click=move |_| {
+                            prepare_preview();
+                            nova_form_context.preview_mode();
+                        }
+                    />
+                }
             }
         }}
     }
@@ -116,7 +123,8 @@ where
             on_change=move |locale| {
                 i18n.set_locale(locale);
                 prepare_preview();
-             } />
+            }
+        />
     }
 }
 
@@ -135,14 +143,17 @@ pub fn ToolbarPageSelect(
         .collect::<Vec<_>>();
 
     view! {
-        <Show when=move || { pages_context.get().len() > 1 } >
+        <Show when=move || { pages_context.get().len() > 1 }>
             <IconSelect
                 id="menu"
                 label="Menu"
                 icon="menu"
                 values=pages.clone()
                 value=move || pages_context.get().selected().expect("page index out of bounds")
-                on_change=move |tab_id| pages_context.update(|pages_context| pages_context.select(tab_id)) />
+                on_change=move |tab_id| {
+                    pages_context.update(|pages_context| pages_context.select(tab_id))
+                }
+            />
         </Show>
     }
     

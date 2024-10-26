@@ -4,6 +4,7 @@ mod telephone;
 mod date_time;
 mod date;
 mod time;
+mod accept;
 
 pub use email::*;
 pub use non_empty_string::*;
@@ -11,6 +12,7 @@ pub use telephone::*;
 pub use date_time::*;
 pub use date::*;
 pub use time::*;
+pub use accept::*;
 
 use num_bigint::BigInt;
 use num_rational::BigRational;
@@ -124,10 +126,16 @@ macro_rules! impl_datatype {
         }
 
         impl std::ops::Deref for $this {
-            type Target = String;
+            type Target = <$this as $crate::Datatype>::Inner;
 
             fn deref(&self) -> &Self::Target {
                 &self.0
+            }
+        }
+
+        impl Into<<$this as $crate::Datatype>::Inner> for $this {
+            fn into(self) -> <$this as $crate::Datatype>::Inner {
+                self.0
             }
         }
 

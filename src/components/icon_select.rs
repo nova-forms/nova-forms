@@ -23,16 +23,14 @@ where
         <For
             each=move || values.clone()
             key=|(value, _)| value.clone()
-            children = move |(v, d)| {
-                view! {
-                    <option value=v.to_string()>{d}</option>
-                }
+            children=move |(v, d)| {
+                view! { <option value=v.to_string()>{d}</option> }
             }
         />
     };
 
     view! {
-        <label class="ui icon-select button" for=id.clone() >
+        <label class="overlay icon-select button" for=id.clone()>
             <Icon label=label icon=icon />
             <select
                 id=id

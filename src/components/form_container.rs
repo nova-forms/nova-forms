@@ -15,18 +15,20 @@ pub fn FormContainer(
     children: Children,
 ) -> impl IntoView {
     view! {
-        <Link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
+        <Link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0"
+        />
         <header>
-            <img id="logo" src=logo/>
+            <img id="logo" src=logo />
             <div id="name">
-                <span id="title">{title.clone()}</span><br/>
+                <span id="title">{title.clone()}</span>
+                <br />
                 <span id="subtitle">{subtitle}</span>
             </div>
         </header>
         <nav></nav>
-        <main>
-            {children()}
-        </main>
+        <main>{children()}</main>
         <footer>
             <span>{title}</span>
         </footer>
