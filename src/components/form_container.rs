@@ -5,7 +5,7 @@ use leptos_meta::*;
 /// A container for a form.
 /// Adds a header with a logo, title, and subtitle, as well as a footer with the title.
 #[component]
-pub fn FormContainer(
+pub fn NovaFormWrapper(
     /// The URL of the logo to display in the header.
     #[prop(into)] logo: String,
     /// The title to display in the header and footer.
@@ -15,10 +15,6 @@ pub fn FormContainer(
     children: Children,
 ) -> impl IntoView {
     view! {
-        <Link
-            rel="stylesheet"
-            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0"
-        />
         <header>
             <img id="logo" src=logo />
             <div id="name">

@@ -341,9 +341,7 @@ macro_rules! init_nova_forms {
                         }
 
                         view! {
-                            <FormContainer title=t!(i18n, nova_forms) subtitle=t!(i18n, demo_form) logo="/logo.png">
-                                {children()}
-                            </FormContainer>
+                            {children()}
                         }
                     }
                 </I18nContextProvider>

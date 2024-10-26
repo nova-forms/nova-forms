@@ -49,7 +49,7 @@ pub fn ToolbarPreviewButton() -> impl IntoView {
                         label="Preview"
                         icon="visibility"
                         on:click=move |_| {
-                            prepare_preview();
+                            prepare_preview(nova_form_context.form_id());
                             nova_form_context.preview_mode();
                         }
                     />
@@ -68,6 +68,8 @@ where
     <L as FromStr>::Err: Debug,
     K: LocaleKeys<Locale = L> + 'static,
 {
+    let nova_form_context = expect_context::<NovaFormContext>();
+
     let locales = L::get_all()
         .iter()
         .map(|locale| {
@@ -122,7 +124,7 @@ where
             value=move || i18n.get_locale()
             on_change=move |locale| {
                 i18n.set_locale(locale);
-                prepare_preview();
+                prepare_preview(nova_form_context.form_id());
             }
         />
     }
