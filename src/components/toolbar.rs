@@ -3,7 +3,7 @@ use std::{fmt::Debug, str::FromStr};
 use leptos::*;
 use leptos_i18n::{I18nContext, Locale, LocaleKeys};
 
-use crate::{prepare_preview, IconButton, IconSelect, NovaFormContext, PagesContext};
+use crate::{start_preview, stop_preview, IconButton, IconSelect, NovaFormContext, PagesContext};
 
 
 #[component]
@@ -39,6 +39,7 @@ pub fn ToolbarPreviewButton() -> impl IntoView {
                         label="Edit"
                         icon="edit"
                         on:click=move |_| {
+                            stop_preview(nova_form_context.form_id());
                             nova_form_context.edit_mode();
                         }
                     />
@@ -49,7 +50,7 @@ pub fn ToolbarPreviewButton() -> impl IntoView {
                         label="Preview"
                         icon="visibility"
                         on:click=move |_| {
-                            prepare_preview(nova_form_context.form_id());
+                            start_preview(nova_form_context.form_id());
                             nova_form_context.preview_mode();
                         }
                     />
@@ -124,7 +125,7 @@ where
             value=move || i18n.get_locale()
             on_change=move |locale| {
                 i18n.set_locale(locale);
-                prepare_preview(nova_form_context.form_id());
+                start_preview(nova_form_context.form_id());
             }
         />
     }

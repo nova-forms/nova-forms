@@ -15,7 +15,7 @@ pub fn Checkbox<T>(
     #[prop(optional, into)] value: MaybeProp<T>,
 ) -> impl IntoView
 where
-    T: Datatype<Inner = bool> + Into<bool>,
+    T: Datatype<Inner = bool>
 {    
     let (qs, form_value) = bind.form_value::<T>();
 
@@ -58,9 +58,7 @@ where
         nova_form_context.set_error(&qs, parsed_value.get().is_err());
     });
 
-    let input_elem = T::attributes()
-        .into_iter()
-        .fold(html::input(), |el, (name, value)| el.attr(name, value))
+    let input_elem = html::input()
         .attr("type", "checkbox")
         .attr("id", qs.to_string())
         .attr("name", qs.to_string())

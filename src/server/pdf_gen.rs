@@ -89,7 +89,9 @@ impl PdfGen {
         let html = leptos::ssr::render_to_string(move || {
             view! {
                 <style>{contents}</style>
-                {form()}
+                <div id="print">
+                    {form()}
+                </div>
             }
             .into_view()
         })

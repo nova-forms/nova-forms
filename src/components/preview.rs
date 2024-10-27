@@ -3,16 +3,24 @@ use leptos_meta::*;
 
 use crate::NovaFormContext;
 
-pub fn prepare_preview(form_id: &str) {
+pub fn start_preview(form_id: &str) {
     js_sys::eval(&format!(r#"
         var preview = document.getElementById("preview");
         preview.innerHTML = "";
         var paged = new window.Paged.Previewer();
+        window.previewer = paged;
         paged.preview(
-            '<div id="print">' + document.getElementById("{}").innerHTML + '</div>',
-            ["/pkg/nova-forms-demo.css"],
+            '<div id="print">' + document.getElementById("{}").outerHTML + '</div>',
+            ["/print.css"],
             preview
         );
+    "#, form_id)).ok();
+}
+
+pub fn stop_preview(form_id: &str) {
+    js_sys::eval(&format!(r#"
+        var preview = document.getElementById("{}");
+        window.previewer.removeStyles(preview);
     "#, form_id)).ok();
 }
 
@@ -36,14 +44,29 @@ pub fn Preview() -> impl IntoView {
                 }
             }
 
+            function disableInputs() {
+                let inputs = preview.querySelectorAll("input");
+                inputs.forEach(input => {
+                    input.setAttribute("readonly", "readonly");
+                });
+
+                let textlikeInputs = preview.querySelectorAll("input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=password])");
+                textlikeInputs.forEach(input => {
+                    input.setAttribute("type", "text");
+                });
+            }
+
             window.PagedConfig = {
                 auto: false,
             };
 
             document.addEventListener("DOMContentLoaded", () => {
                 const preview = document.getElementById("preview");
-                const config = { attributes: true, childList: true, subtree: true };
-                const observer = new MutationObserver(resizePreview);
+                const config = { childList: true, subtree: true };
+                const observer = new MutationObserver(() => {
+                    resizePreview();
+                    disableInputs();
+                });
                 observer.observe(preview, config);
             });
 

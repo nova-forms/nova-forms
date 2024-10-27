@@ -57,7 +57,7 @@ impl QueryString {
     /// Gets the `QueryString` and the serialized value for the current context.
     /// This is very similar to `form_context`, but it assumes that `FormData` only contains one value
     /// which is deserializable into the type `T`.
-    pub fn form_value<T: Datatype>(&self) -> (QueryString, Result<T, T::Error>) {
+    pub fn form_value<T: FromStr>(&self) -> (QueryString, Result<T, <T as FromStr>::Err>) {
         let form_data = expect_context::<FormDataSerialized>();
         let value = T::from_str(&form_data
             .exact(&self)
