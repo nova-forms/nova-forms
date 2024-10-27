@@ -69,6 +69,17 @@ impl PdfGen {
         Ok(output_path)
     }
 
+    async fn read_file(&self, path: PathBuf) -> Result<String, Error> {
+        use tokio::fs::File;
+        use tokio::io::AsyncReadExt;
+
+        let mut file = File::open(path).await?;
+        let mut contents = String::new();
+        file.read_to_string(&mut contents).await?;
+
+        Ok(contents)
+    }
+
     /// Renders a form as a PDF.
     pub async fn render_form<F, IV>(&self, form: F) -> Result<PathBuf, Error>
     where
@@ -79,16 +90,23 @@ impl PdfGen {
         use tokio::{fs::File, io::AsyncReadExt};
 
         let mut dir = std::env::current_dir().unwrap();
-        dir.push("style");
-        dir.push("main.css");
 
-        let mut file = File::open(dir).await?;
-        let mut contents = String::new();
-        file.read_to_string(&mut contents).await?;
+        let mut main_css_path = dir.clone();
+        main_css_path.push("public");
+        main_css_path.push("main.css");
+
+        let mut print_css_path = dir.clone();
+        print_css_path.push("public");
+        print_css_path.push("print.css");
+
+        let main_contents = tokio::fs::read_to_string(main_css_path).await?;
+        let print_contents = tokio::fs::read_to_string(print_css_path).await?;
+      
 
         let html = leptos::ssr::render_to_string(move || {
             view! {
-                <style>{contents}</style>
+                <style>{main_contents}</style>
+                <style>{print_contents}</style>
                 <div id="print">
                     {form()}
                 </div>

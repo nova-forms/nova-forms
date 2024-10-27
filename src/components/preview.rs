@@ -10,7 +10,7 @@ pub fn start_preview(form_id: &str) {
         var paged = new window.Paged.Previewer();
         window.previewer = paged;
         paged.preview(
-            '<div id="print">' + document.getElementById("{}").outerHTML + '</div>',
+            '<div id="print">' + document.getElementById("{}").innerHTML + '</div>',
             ["/print.css"],
             preview
         );
@@ -44,18 +44,6 @@ pub fn Preview() -> impl IntoView {
                 }
             }
 
-            function disableInputs() {
-                let inputs = preview.querySelectorAll("input");
-                inputs.forEach(input => {
-                    input.setAttribute("readonly", "readonly");
-                });
-
-                let textlikeInputs = preview.querySelectorAll("input:not([type=checkbox]):not([type=radio]):not([type=hidden]):not([type=password])");
-                textlikeInputs.forEach(input => {
-                    input.setAttribute("type", "text");
-                });
-            }
-
             window.PagedConfig = {
                 auto: false,
             };
@@ -65,7 +53,6 @@ pub fn Preview() -> impl IntoView {
                 const config = { childList: true, subtree: true };
                 const observer = new MutationObserver(() => {
                     resizePreview();
-                    disableInputs();
                 });
                 observer.observe(preview, config);
             });

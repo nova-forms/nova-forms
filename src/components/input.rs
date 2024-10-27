@@ -124,28 +124,6 @@ where
         nova_form_context.set_error(&qs, parsed_value.get().is_err());
     });
 
-    /*let is_checkbox = T::attributes()
-        .iter()
-        .any(|(name, value)| *name == "type" && *value == Attribute::String(Oco::Borrowed("checkbox")));*/
-
-    let input_elem = T::attributes()
-        .into_iter()
-        .fold(html::input(), |el, (name, value)| el.attr(name, value))
-        .attr("id", qs.to_string())
-        .attr("name", qs.to_string())
-        .attr("value", move || raw_value.get())
-        .attr("placeholder", placeholder.as_ref().map(T::to_string))
-        .on(ev::input, move |ev| {
-            /*if is_checkbox {
-                logging::log!("input event: {}", event_target_checked(&ev));
-                set_input_value.set(Some(event_target_checked(&ev).to_string()));
-            } else {
-                logging::log!("input event: {}", event_target_value(&ev));
-                set_input_value.set(Some(event_target_value(&ev)));
-            }*/
-            set_input_value.set(Some(event_target_value(&ev)));
-        });
-
     let translate_errors = use_context::<TranslationProvider<T::Error>>();
 
     view! {
@@ -155,7 +133,34 @@ where
             class:ok=move || parsed_value.get().is_ok() && show_error.get()
         >
             <label for=qs.to_string()>{label}</label>
-            {input_elem}
+            {move || {
+                let input_elem = T::attributes()
+                    .into_iter()
+                    .fold(html::input(), |el, (name, value)| el.attr(name, value))
+                    .attr("id", qs.to_string())
+                    .attr("name", qs.to_string())
+                    .attr("value", move || raw_value.get())
+                    .attr("placeholder", placeholder.as_ref().map(T::to_string))
+                    .on(ev::input, move |ev| {
+                        set_input_value.set(Some(event_target_value(&ev)));
+                    });
+            
+                let text_elem = T::attributes()
+                    .into_iter()
+                    .filter(|(name, _)| *name != "type")
+                    .fold(html::input(), |el, (name, value)| el.attr(name, value))
+                    .attr("type", "text")
+                    .attr("readonly", true)
+                    .attr("id", qs.to_string())
+                    .attr("name", qs.to_string())
+                    .attr("value", move || raw_value.get());
+
+                if nova_form_context.is_render_mode() {
+                    {text_elem}
+                } else {
+                    {input_elem}
+                }
+            }}
             {move || {
                 if let (Err(err), Some(translate_errors), true) = (
                     parsed_value.get(),

@@ -4,8 +4,6 @@ use leptos::*;
 use percent_encoding::{percent_decode, percent_encode, NON_ALPHANUMERIC};
 use serde::Serialize;
 
-use crate::Datatype;
-
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum QueryStringPart {
     Index(usize),

@@ -42,7 +42,8 @@ pub struct NovaFormContext {
     form_id: Ustr,
     preview: RwSignal<bool>,
     trigger_validation: RwSignal<Version>,
-    inputs: RwSignal<InputsContext>
+    inputs: RwSignal<InputsContext>,
+    render: RwSignal<bool>,
 }
 
 impl NovaFormContext {
@@ -59,6 +60,10 @@ impl NovaFormContext {
         Ok(())
     }
 
+    pub fn is_render_mode(&self) -> bool {
+        self.render.get() || self.preview.get()
+    }
+
     pub fn is_preview_mode(&self) -> bool {
         self.preview.get()
     }
@@ -68,10 +73,12 @@ impl NovaFormContext {
     }
 
     pub fn preview_mode(&self) {
+        self.render.set(true);
         self.preview.set(true);
     }
 
     pub fn edit_mode(&self) {
+        self.render.set(false);
         self.preview.set(false);
     }
 
@@ -121,6 +128,7 @@ pub fn NovaForm<F, ServFn, L, K>(
     #[prop(optional)] _arg: PhantomData<ServFn>,
     i18n: I18nContext<L, K>,
     children: Children,
+    #[prop(optional)] render: bool,
 ) -> impl IntoView
 where
     F: Default + Clone + Serialize + Debug + 'static,
@@ -145,10 +153,11 @@ where
     provide_context(form_data_serialized.clone());
 
     let preview = create_rw_signal(false);
+    let render = create_rw_signal(render);
     let form_id = Ustr::from("nova-form");
     let inputs = create_rw_signal(InputsContext::new());
     let trigger_validation = create_rw_signal(0);
-    let nova_form_context = NovaFormContext { preview, form_id, trigger_validation, inputs };
+    let nova_form_context = NovaFormContext { preview, form_id, trigger_validation, inputs, render };
     provide_context(nova_form_context);
 
     let (submit_state, set_submit_state) = create_signal(SubmitState::Initial);

@@ -50,8 +50,8 @@ pub fn ToolbarPreviewButton() -> impl IntoView {
                         label="Preview"
                         icon="visibility"
                         on:click=move |_| {
-                            start_preview(nova_form_context.form_id());
                             nova_form_context.preview_mode();
+                            start_preview(nova_form_context.form_id());
                         }
                     />
                 }
