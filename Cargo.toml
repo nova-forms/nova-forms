@@ -2,6 +2,13 @@
 name = "nova-forms"
 version = "0.1.0"
 edition = "2021"
+description = "Build online forms with ease."
+license = "MIT"
+author = "Fabian Bösiger <boesiger.fabian@outlook.com>"
+keywords = ["forms"]
+repository = "https://github.com/fabianboesiger/nova-forms"
+readme = "README.md"
+homepage = "https://nova-forms.github.io"
 
 [dependencies]
 leptos = { version = "0.6" }
