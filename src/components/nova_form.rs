@@ -6,19 +6,20 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use server_fn::{
     client::Client, codec::PostUrl, error::NoCustomError, request::ClientReq, ServerFn,
 };
+use strum::Display;
 use time::UtcOffset;
 use ustr::Ustr;
 use std::{fmt::Debug, marker::PhantomData, str::FromStr};
 use thiserror::Error;
 
 use crate::{
-    local_utc_offset, FormDataSerialized, InputsContext, Modal, ModalKind, PagesContext, Preview, QueryString, Toolbar, ToolbarLocaleSelect, ToolbarPageSelect, ToolbarPreviewButton, ToolbarSubmitButton
+    local_utc_offset, use_translation, FormDataSerialized, InputsContext, Modal, ModalKind, PagesContext, Preview, QueryString, Toolbar, ToolbarLocaleSelect, ToolbarPageSelect, ToolbarPreviewButton, ToolbarSubmitButton
 };
 
 use super::{InputData, PageContext};
 
 #[derive(Error, Debug, Clone)]
-enum SubmitError {
+pub enum SubmitError {
     #[error("the form contains errors")]
     ValidationError,
     #[error("the form contains errors")]
@@ -27,8 +28,8 @@ enum SubmitError {
     ServerError(ServerFnError),
 }
 
-#[derive(Clone)]
-enum SubmitState {
+#[derive(Clone, Display)]
+pub enum SubmitState {
     Initial,
     Pending,
     Error(SubmitError),
@@ -237,7 +238,6 @@ where
             }
         }
     };
-
     view! {
         <form
             id=form_id.as_str()
@@ -270,49 +270,30 @@ where
             <ToolbarSubmitButton />
         </Toolbar>
 
-        {move || match submit_state.get() {
-            SubmitState::Initial => view! {}.into_view(),
-            SubmitState::Pending => {
-                view! {
-                    <Modal
-                        kind=ModalKind::Info
-                        title="Submission"
-                        close=move |()| set_submit_state.set(SubmitState::Initial)
-                    >
-                        "Your form is being submitted."
-                    </Modal>
-                }
-                    .into_view()
-            }
-            SubmitState::Error(err) => {
-                view! {
-                    <Modal
-                        kind=ModalKind::Error
-                        title="Submission"
-                        close=move |()| set_submit_state.set(SubmitState::Initial)
-                    >
-                        {if cfg!(debug_assertions) {
-                            format!("Your form could not be submitted: {err}.")
-                        } else {
-                            format!("Your form could not be submitted.")
-                        }}
-                    </Modal>
-                }
-                    .into_view()
-            }
-            SubmitState::Success => {
-                view! {
-                    <Modal
-                        kind=ModalKind::Success
-                        title="Submission"
-                        close=move |()| set_submit_state.set(SubmitState::Initial)
-                    >
-                        "Your form was successfully submitted."
-                    </Modal>
-                }
-                    .into_view()
-            }
-        }}
+       
+        <Modal
+            open=Signal::derive(move || matches!(submit_state.get(), SubmitState::Pending))
+            kind=ModalKind::Info
+            title="Submission"
+            msg={use_translation(submit_state.get())}
+            close=move |()| set_submit_state.set(SubmitState::Initial)
+        />
+
+        <Modal
+            open=Signal::derive(move || matches!(submit_state.get(), SubmitState::Error(_)))
+            kind=ModalKind::Error
+            title="Submission"
+            msg={use_translation(submit_state.get())}
+            close=move |()| set_submit_state.set(SubmitState::Initial)
+        />
+    
+        <Modal
+            open=Signal::derive(move || matches!(submit_state.get(), SubmitState::Success))
+            kind=ModalKind::Success
+            title="Submission"
+            msg={use_translation(submit_state.get())}
+            close=move |()| set_submit_state.set(SubmitState::Initial)
+        />
     }
 }
 

@@ -28,7 +28,7 @@ time = { version = "0.3", features = ["serde", "parsing", "formatting", "local-o
 num-bigint = { version = "0.4", features = ["serde"] }
 num-rational = { version = "0.4", features = ["serde"] }
 ustr = "1"
-strum = "0.26"
+strum = { version = "0.26", features = ["derive"] }
 
 [features]
 csr = ["leptos/csr", "leptos_router/csr"]

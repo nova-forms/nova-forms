@@ -188,6 +188,7 @@ pub fn PageStepper(
                 on:click=move |_| pages_context.update(|pages| pages.prev())
                 disabled=Signal::derive(move || pages_context.get().is_first_selected())
             />
+            <div class="stepper-spacer" />
             <For
                 each=move || {
                     let pages = pages_context.get().pages().iter().cloned().collect::<Vec<_>>();
@@ -198,7 +199,7 @@ pub fn PageStepper(
                     let page_id = page.id();
                     view! {
                         <button
-                            class="icon-button"
+                            class="icon-button stepper-page-number"
                             on:click=move |_| {
                                 pages_context.update(|pages_context| pages_context.select(page_id))
                             }
@@ -209,6 +210,7 @@ pub fn PageStepper(
                     }
                 }
             />
+            <div class="stepper-spacer" />
             <IconButton
                 label="Next Page"
                 icon="arrow_forward"

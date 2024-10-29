@@ -1,5 +1,5 @@
 use super::PageId;
-use crate::{Datatype, NovaFormContext, QueryString, TranslationProvider};
+use crate::{use_translation, Datatype, NovaFormContext, QueryString};
 use leptos::*;
 
 mod context {
@@ -124,8 +124,6 @@ where
         nova_form_context.set_error(&qs, parsed_value.get().is_err());
     });
 
-    let translate_errors = use_context::<TranslationProvider<T::Error>>();
-
     view! {
         <div
             class="field"
@@ -162,12 +160,11 @@ where
                 }
             }}
             {move || {
-                if let (Err(err), Some(translate_errors), true) = (
+                if let (Err(err), true) = (
                     parsed_value.get(),
-                    translate_errors.as_ref(),
                     show_error.get(),
                 ) {
-                    view! { <span class="error-message">{translate_errors.clone().t(err)}</span> }
+                    view! { <span class="error-message">{use_translation(err)}</span> }
                         .into_view()
                 } else {
                     View::default()

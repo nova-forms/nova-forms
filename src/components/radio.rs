@@ -1,6 +1,6 @@
-use std::{hash::Hash, str::FromStr};
+use std::{fmt::Display, hash::Hash, str::FromStr};
 
-use crate::{NovaFormContext, QueryString, TranslationProvider};
+use crate::{use_translation, NovaFormContext, QueryString};
 use leptos::*;
 use strum::{IntoEnumIterator, ParseError};
 
@@ -18,7 +18,7 @@ pub fn Radio<T>(
     #[prop(optional, into)] value: MaybeProp<T>,
 ) -> impl IntoView
 where
-    T: IntoEnumIterator + FromStr<Err = ParseError> + Into<&'static str> + Clone + Copy + Default + Eq + Hash + 'static
+    T: IntoEnumIterator + FromStr<Err = ParseError> + Into<&'static str> + Clone + Copy + Default + Eq + Hash + Display + 'static
 {    
     let (qs, form_value) = bind.form_value::<T>();
 
@@ -72,11 +72,9 @@ where
             set_input_value.set(Some(event_target_value(&ev)));
         });*/
 
-    let translate_errors = use_context::<TranslationProvider<<T as FromStr>::Err>>();
-
     view! {
         <div
-            class="field"
+            class="field radio"
             class:error=move || parsed_value.get().is_err() && show_error.get()
             class:ok=move || parsed_value.get().is_ok() && show_error.get()
         >   
@@ -96,28 +94,21 @@ where
                                 set_input_value.set(Some(event_target_value(&ev)));
                             });
                         
-                        let label = use_context::<TranslationProvider<T>>();
-
                         view! {
                             <label for=format!("{}({})", qs.to_string(), item.into())>
                                 {input_elem}
-                                <span class="custom-checkbox"></span>
-                                <span class="custom-checkbox-label">{if let Some(label) = label {
-                                    label.t(item).into_view()
-                                } else {
-                                    item.into().into_view()
-                                }}</span>
+                                <span class="custom-radio"></span>
+                                <span class="custom-radio-label">{use_translation(item)}</span>
                             </label>
                         }
                     }}
                 />
                 {move || {
-                    if let (Err(err), Some(translate_errors), true) = (
+                    if let (Err(err), true) = (
                         parsed_value.get(),
-                        translate_errors.as_ref(),
                         show_error.get(),
                     ) {
-                        view! { <span class="error-message">{translate_errors.clone().t(err)}</span> }
+                        view! { <span class="error-message">{use_translation(err)}</span> }
                             .into_view()
                     } else {
                         View::default()

@@ -1,5 +1,5 @@
 mod file_upload;
-mod form_container;
+mod nova_form_wrapper;
 mod group;
 mod icon;
 mod icon_button;
@@ -16,7 +16,7 @@ mod checkbox;
 mod radio;
 
 pub use file_upload::*;
-pub use form_container::*;
+pub use nova_form_wrapper::*;
 pub use group::*;
 pub use icon::*;
 pub use icon_button::*;

@@ -1,4 +1,4 @@
-use crate::{Datatype, NovaFormContext, QueryString, TranslationProvider};
+use crate::{use_translation, Datatype, NovaFormContext, QueryString};
 use leptos::*;
 
 /// A component that renders an input field.
@@ -68,11 +68,10 @@ where
             set_input_value.set(Some(event_target_checked(&ev)));
         });
 
-    let translate_errors = use_context::<TranslationProvider<<T as Datatype>::Error>>();
 
     view! {
         <div
-            class="field"
+            class="field checkbox"
             class:error=move || parsed_value.get().is_err() && show_error.get()
             class:ok=move || parsed_value.get().is_ok() && show_error.get()
         >
@@ -82,12 +81,11 @@ where
                 <span class="custom-checkbox-label">{label}</span>
             </label>
             {move || {
-                if let (Err(err), Some(translate_errors), true) = (
+                if let (Err(err), true) = (
                     parsed_value.get(),
-                    translate_errors.as_ref(),
                     show_error.get(),
                 ) {
-                    view! { <span class="error-message">{translate_errors.clone().t(err)}</span> }
+                    view! { <span class="error-message">{use_translation(err)}</span> }
                         .into_view()
                 } else {
                     View::default()
