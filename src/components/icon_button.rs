@@ -14,7 +14,7 @@ pub fn IconButton(
 ) -> impl IntoView {
     view! {
         <button
-            class="overlay icon-button"
+            class="overlay icon-button button"
             disabled=move || disabled.map(|s| s.get()).unwrap_or_default()
             type=button_type.unwrap_or("button".to_owned())
             form=form

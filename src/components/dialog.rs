@@ -2,10 +2,27 @@ use leptos::*;
 
 use crate::IconButton;
 
-use super::DialogKind;
+#[derive(Copy, Clone, Debug)]
+pub enum DialogKind {
+    Success,
+    Info,
+    Warn,
+    Error,
+}
+
+impl DialogKind {
+    pub fn class(&self) -> &'static str {
+        match self {
+            DialogKind::Success => "success",
+            DialogKind::Info => "info",
+            DialogKind::Warn => "warn",
+            DialogKind::Error => "error",
+        }
+    }
+}
 
 #[component]
-pub fn Modal(
+pub fn Dialog(
     kind: DialogKind,
     #[prop(into)] open: Signal<bool>,
     #[prop(into, optional)] close: Option<Callback<(), ()>>,
@@ -14,21 +31,21 @@ pub fn Modal(
 ) -> impl IntoView {
     view! {
         <Show when=move || open.get()>
-            <div class="modal">
+            <div class="dialog">
                 <dialog
                     open=open.get()
                     aria-modal="true"
                     class=kind.class()
                 >
-                    <div class="modal-header">{
+                    <div class="dialog-header">{
                         let title = title.clone();
                         move || title.clone()
                     }</div>
-                    <div class="modal-main">{
+                    <div class="dialog-main">{
                         let msg = msg.clone();
                         move || msg.clone()
                     }</div>
-                    <div class="modal-footer">
+                    <div class="dialog-footer">
                         {
                             if let Some(close) = close {
                                 view! {

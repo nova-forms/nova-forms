@@ -2,18 +2,8 @@ use std::{fmt::Debug, str::FromStr};
 
 use leptos::*;
 use leptos_i18n::{I18nContext, Locale, LocaleKeys};
-use strum::Display;
 
-use crate::{start_preview, stop_preview, use_translation, IconButton, IconSelect, NovaFormContext, PagesContext};
-
-#[derive(Clone, Copy, Debug, Display)]
-pub enum ToolbarTranslations {
-    Submit,
-    Preview,
-    Edit,
-    Language,
-    Menu,
-}
+use crate::{start_preview, stop_preview, use_translation, IconButton, IconSelect, NovaFormContext, PagesContext, Translation};
 
 #[component]
 pub fn Toolbar(
@@ -29,10 +19,12 @@ pub fn ToolbarSubmitButton() -> impl IntoView {
     view! {
         <IconButton
             button_type="submit"
-            label=use_translation(ToolbarTranslations::Submit)
+            label=use_translation(Translation::Submit)
             icon="send"
             form=nova_form_context.form_id()
+            disabled=cfg!(feature = "csr")
         />
+
     }
 }
 
@@ -45,7 +37,7 @@ pub fn ToolbarPreviewButton() -> impl IntoView {
             if nova_form_context.is_preview_mode() {
                 view! {
                     <IconButton
-                        label=use_translation(ToolbarTranslations::Edit)
+                        label=use_translation(Translation::Edit)
                         icon="edit"
                         on:click=move |_| {
                             stop_preview(nova_form_context.form_id());
@@ -56,7 +48,7 @@ pub fn ToolbarPreviewButton() -> impl IntoView {
             } else {
                 view! {
                     <IconButton
-                        label=use_translation(ToolbarTranslations::Preview)
+                        label=use_translation(Translation::Preview)
                         icon="visibility"
                         on:click=move |_| {
                             nova_form_context.preview_mode();
@@ -128,7 +120,7 @@ where
     view! {
         <IconSelect
             id="language"
-            label=use_translation(ToolbarTranslations::Language)
+            label=use_translation(Translation::Language)
             icon="translate"
             values=locales.clone()
             value=move || i18n.get_locale()
@@ -158,7 +150,7 @@ pub fn ToolbarPageSelect(
         <Show when=move || { pages_context.get().len() > 1 }>
             <IconSelect
                 id="menu"
-                label=use_translation(ToolbarTranslations::Menu)
+                label=use_translation(Translation::Menu)
                 icon="menu"
                 values=pages.clone()
                 value=move || pages_context.get().selected().expect("page index out of bounds")

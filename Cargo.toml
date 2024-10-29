@@ -31,7 +31,7 @@ ustr = "1"
 strum = { version = "0.26", features = ["derive"] }
 
 [features]
-csr = ["leptos/csr", "leptos_router/csr"]
+csr = ["leptos/csr", "leptos_router/csr", "leptos_meta/csr"]
 hydrate = ["leptos/hydrate", "leptos_router/hydrate", "leptos_meta/hydrate"]
 ssr = [
     "leptos/ssr",

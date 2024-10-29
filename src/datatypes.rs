@@ -17,7 +17,7 @@ pub use accept::*;
 use num_bigint::BigInt;
 use num_rational::BigRational;
 
-use leptos::{expect_context, provide_context, use_context, Attribute, IntoView, Oco, View};
+use leptos::{expect_context, provide_context, use_context, view, Attribute, IntoView, Oco, TextProp, View};
 use std::borrow::Cow;
 use std::error::Error;
 use std::fmt::{Debug, Display};
@@ -183,7 +183,7 @@ pub trait Datatype: Clone + Display + FromStr<Err = Self::Error> + Into<Self::In
 // Defines custom translations for a type `T`.
 // This is useful for adding custom error messages to error enums.
 #[derive(Clone)]
-pub struct TranslationProvider<T>(Rc<dyn Fn(T) -> Cow<'static, str>>);
+pub struct TranslationProvider<T>(Rc<dyn Fn(T) -> TextProp>);
 
 /*
 impl<T> TranslationProvider<T> {
@@ -195,34 +195,32 @@ impl<T> TranslationProvider<T> {
 
 /// Adds custom translations to a type `T`.
 /// This is useful for adding custom error messages to error enums or other elements.
-pub fn provide_translation<F, T>(f: F)
+pub fn provide_translation<F, T, IV>(f: F)
 where
     T: Clone + 'static,
-    F: Fn(T) -> &'static str + 'static,
+    F: Fn(T) -> IV + 'static,
+    IV: Into<TextProp> + 'static,
 {
     provide_context(TranslationProvider(Rc::new(move |value| f(value).into())));
 }
 
-pub fn expect_translation<T>(value: T) -> impl Fn() -> Cow<'static, str>
+pub fn expect_translation<T>(value: T) -> TextProp
 where
     T: Clone + 'static,
 {
-    move || {
-        let translation_provider = expect_context::<TranslationProvider<T>>();
-        translation_provider.0(value.clone())
-    }
+    let translation_provider = expect_context::<TranslationProvider<T>>();
+    translation_provider.0(value.clone())
 }
 
-pub fn use_translation<T>(value: T) -> impl Fn() -> Cow<'static, str>
+pub fn use_translation<T>(value: T) -> TextProp
 where
     T: Clone + Display + 'static,
 {
-    move || {
-        let translation_provider: Option<TranslationProvider<T>> = use_context::<TranslationProvider<T>>();
-        if let Some(translation_provider) = translation_provider {
-            translation_provider.0(value.clone())
-        } else {
-            format!("{}", value).into()
-        }
+    let translation_provider: Option<TranslationProvider<T>> = use_context::<TranslationProvider<T>>();
+    if let Some(translation_provider) = translation_provider {
+        translation_provider.0(value.clone())
+    } else {
+        format!("{}", value).into()
     }
+    
 }
