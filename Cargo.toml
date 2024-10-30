@@ -1,6 +1,6 @@
 [package]
 name = "nova-forms"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Build online forms with ease."
 license = "MIT"

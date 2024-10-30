@@ -1,5 +1,7 @@
 use leptos::*;
 
+use crate::NovaFormsContext;
+
 /// A container for a form.
 /// Adds a header with a logo, title, and subtitle, as well as a footer with the title.
 #[component]
@@ -13,16 +15,12 @@ pub fn NovaFormWrapper(
     #[prop(into, optional)] footer: Option<Children>,
     children: Children,
 ) -> impl IntoView {
+    let nova_forms_context = expect_context::<NovaFormsContext>();
+
     view! {
         <header>
-            <div class="content">
-                {
-                    if logo.ends_with(".svg") {
-                        view! { <img id="logo" src=logo /> }
-                    } else {
-                        view! { <img id="logo" src=logo /> }
-                    }
-                }
+            <div class="content">  
+                <img id="logo" src=format!("{}{}", nova_forms_context.base_url, logo) />
                 <div id="name">
                     <span id="title">{title.clone()}</span>
                     <br />

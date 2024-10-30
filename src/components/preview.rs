@@ -1,6 +1,3 @@
-use std::path::PathBuf;
-
-use itertools::Itertools;
 use leptos::*;
 use leptos_meta::*;
 
@@ -16,15 +13,12 @@ pub fn start_preview(form_id: &str) {
             window.previewer = paged;
             paged.preview(
                 '<div id="print">' + document.getElementById("{}").innerHTML + '</div>',
-                [{}],
+                ["{}print.css"],
                 preview
             );
         "#,
         form_id,
-        nova_forms_context.styles
-            .into_iter()
-            .map(|p| format!("{}", PathBuf::new().join(nova_forms_context.base_url).join(p).display()))
-            .join(",")
+        nova_forms_context.base_url
     )).ok();
 }
 

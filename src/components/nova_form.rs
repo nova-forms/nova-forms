@@ -9,7 +9,7 @@ use server_fn::{
 use strum::Display;
 use time::UtcOffset;
 use ustr::Ustr;
-use std::{fmt::Debug, marker::PhantomData, path::Path, str::FromStr};
+use std::{fmt::Debug, marker::PhantomData, str::FromStr};
 use thiserror::Error;
 
 use crate::{
@@ -322,8 +322,7 @@ macro_rules! init_nova_forms {
         #[component]
         pub fn NovaFormsContextProvider(
             #[prop(optional)] meta_data: Option<MetaData>,
-            #[prop(optional)] base_url: Option<&'static std::path::Path>,
-            #[prop(optional)] styles: &'static [&'static std::path::Path],
+            #[prop(optional, into)] base_url: Option<String>,
             children: leptos::Children,
         ) -> impl IntoView {
             use std::str::FromStr;
@@ -331,16 +330,34 @@ macro_rules! init_nova_forms {
             // Provides context that manages stylesheets, titles, meta tags, etc.
             leptos_meta::provide_meta_context();
 
-            provide_context::<NovaFormsContext>(NovaFormsContext {
-                styles,
-                base_url: if let Some(base_url) = base_url {
+            let base_url = {
+                if let Some(mut base_url) = base_url {
+                    if !base_url.ends_with('/') {
+                        base_url = format!("{}/", base_url);
+                    }
+                    if !base_url.starts_with('/') {
+                        base_url = format!("/{}", base_url);
+                    }
                     base_url
                 } else {
-                    std::path::Path::new("/")
-                },
+                    String::from("/")
+                }
+            };
+
+            provide_context::<NovaFormsContext>(NovaFormsContext {
+                base_url: base_url.clone(),
             });
 
             view! {
+                // Injects a stylesheet into the document <head>.
+                // id=leptos means cargo-leptos will hot-reload this stylesheet.
+                <Stylesheet id="leptos" href={format!("{}pkg/app.css", base_url)} />
+
+                <Link
+                    rel="stylesheet"
+                    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0"
+                />
+
                 <I18nContextProvider>
                     {
                         let i18n = use_i18n();
@@ -360,9 +377,8 @@ macro_rules! init_nova_forms {
     };
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub struct NovaFormsContext {
-    pub base_url: &'static Path,
-    pub styles: &'static [&'static Path],
+    pub base_url: String,
 }
 
