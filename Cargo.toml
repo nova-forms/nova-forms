@@ -2,6 +2,13 @@
 name = "nova-forms"
 version = "0.1.0"
 edition = "2021"
+description = "Build online forms with ease."
+license = "MIT"
+author = "Fabian Bösiger <boesiger.fabian@outlook.com>"
+keywords = ["forms"]
+repository = "https://github.com/fabianboesiger/nova-forms"
+readme = "README.md"
+homepage = "https://nova-forms.github.io"
 
 [dependencies]
 leptos = { version = "0.6" }
@@ -32,7 +39,7 @@ strum = { version = "0.26", features = ["derive"] }
 itertools = "0.13"
 
 [features]
-csr = ["leptos/csr", "leptos_router/csr"]
+csr = ["leptos/csr", "leptos_router/csr", "leptos_meta/csr"]
 hydrate = ["leptos/hydrate", "leptos_router/hydrate", "leptos_meta/hydrate"]
 ssr = [
     "leptos/ssr",

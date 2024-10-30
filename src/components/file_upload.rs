@@ -54,9 +54,9 @@ pub fn FileUpload(
 
     view! {
         <label class="button icon-button" for=qs.to_string()>
+            <input id=qs.to_string() type="file" class="sr-hidden" on:input=on_input disabled=cfg!(feature = "csr") />
             <Icon label="Upload" icon="upload" />
         </label>
-        <input id=qs.to_string() type="file" class="sr-hidden" on:input=on_input />
         <ul>
             <For
                 each=move || file_info.get().into_iter().enumerate()

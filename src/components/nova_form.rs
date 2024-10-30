@@ -13,10 +13,19 @@ use std::{fmt::Debug, marker::PhantomData, path::Path, str::FromStr};
 use thiserror::Error;
 
 use crate::{
-    local_utc_offset, use_translation, FormDataSerialized, InputsContext, Modal, ModalKind, PagesContext, Preview, QueryString, Toolbar, ToolbarLocaleSelect, ToolbarPageSelect, ToolbarPreviewButton, ToolbarSubmitButton
+    local_utc_offset, use_translation, FormDataSerialized, InputsContext, Modal, DialogKind, PagesContext, Preview, QueryString, Toolbar, ToolbarLocaleSelect, ToolbarPageSelect, ToolbarPreviewButton, ToolbarSubmitButton
 };
 
 use super::{InputData, PageContext};
+
+#[derive(Clone, Copy, Debug, Display)]
+pub enum Translation {
+    Submit,
+    Preview,
+    Edit,
+    Language,
+    Menu,
+}
 
 #[derive(Error, Debug, Clone)]
 pub enum SubmitError {
@@ -270,30 +279,30 @@ where
             <ToolbarSubmitButton />
         </Toolbar>
 
-       
+        
         <Modal
             open=Signal::derive(move || matches!(submit_state.get(), SubmitState::Pending))
-            kind=ModalKind::Info
-            title="Submission"
+            kind=DialogKind::Info
+            title={use_translation(Translation::Submit)}
             msg={use_translation(submit_state.get())}
-            close=move |()| set_submit_state.set(SubmitState::Initial)
         />
 
         <Modal
             open=Signal::derive(move || matches!(submit_state.get(), SubmitState::Error(_)))
-            kind=ModalKind::Error
-            title="Submission"
+            kind=DialogKind::Error
+            title={use_translation(Translation::Submit)}
             msg={use_translation(submit_state.get())}
             close=move |()| set_submit_state.set(SubmitState::Initial)
         />
     
         <Modal
             open=Signal::derive(move || matches!(submit_state.get(), SubmitState::Success))
-            kind=ModalKind::Success
-            title="Submission"
+            kind=DialogKind::Success
+            title={use_translation(Translation::Submit)}
             msg={use_translation(submit_state.get())}
             close=move |()| set_submit_state.set(SubmitState::Initial)
         />
+        
     }
 }
 

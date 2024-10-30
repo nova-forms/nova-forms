@@ -14,6 +14,7 @@ mod toolbar;
 mod preview;
 mod checkbox;
 mod radio;
+mod dialog;
 
 pub use file_upload::*;
 pub use nova_form_wrapper::*;
@@ -29,5 +30,6 @@ pub use repeatable::*;
 pub use select::*;
 pub use checkbox::*;
 pub use radio::*;
+pub use dialog::*;
 pub(crate) use toolbar::*;
 pub(crate) use preview::*;
