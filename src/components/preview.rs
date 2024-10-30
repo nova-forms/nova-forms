@@ -1,20 +1,31 @@
+use std::path::PathBuf;
+
+use itertools::Itertools;
 use leptos::*;
 use leptos_meta::*;
 
-use crate::NovaFormContext;
+use crate::{NovaFormContext, NovaFormsContext};
 
 pub fn start_preview(form_id: &str) {
+    let nova_forms_context = expect_context::<NovaFormsContext>();
+
     js_sys::eval(&format!(r#"
-        var preview = document.getElementById("preview");
-        preview.innerHTML = "";
-        var paged = new window.Paged.Previewer();
-        window.previewer = paged;
-        paged.preview(
-            '<div id="print">' + document.getElementById("{}").innerHTML + '</div>',
-            ["/print.css"],
-            preview
-        );
-    "#, form_id)).ok();
+            var preview = document.getElementById("preview");
+            preview.innerHTML = "";
+            var paged = new window.Paged.Previewer();
+            window.previewer = paged;
+            paged.preview(
+                '<div id="print">' + document.getElementById("{}").innerHTML + '</div>',
+                [{}],
+                preview
+            );
+        "#,
+        form_id,
+        nova_forms_context.styles
+            .into_iter()
+            .map(|p| format!("{}", PathBuf::new().join(nova_forms_context.base_url).join(p).display()))
+            .join(",")
+    )).ok();
 }
 
 pub fn stop_preview(form_id: &str) {
@@ -30,6 +41,8 @@ pub fn Preview() -> impl IntoView {
 
     view! {
         <Script>r#"
+            window.styles = [];
+
             function resizePreview() {
                 const preview = document.getElementById("preview");
                 let scaleFactor =  Math.min(1, (window.innerWidth / preview.scrollWidth));

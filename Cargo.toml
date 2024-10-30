@@ -29,6 +29,7 @@ num-bigint = { version = "0.4", features = ["serde"] }
 num-rational = { version = "0.4", features = ["serde"] }
 ustr = "1"
 strum = { version = "0.26", features = ["derive"] }
+itertools = "0.13"
 
 [features]
 csr = ["leptos/csr", "leptos_router/csr"]

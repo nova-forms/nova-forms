@@ -1,6 +1,6 @@
 use leptos::IntoView;
 use std::{
-    path::PathBuf,
+    path::{Path, PathBuf},
     process::{ExitStatus, Stdio},
     sync::Arc,
 };
@@ -81,7 +81,7 @@ impl PdfGen {
     }
 
     /// Renders a form as a PDF.
-    pub async fn render_form<F, IV>(&self, form: F) -> Result<PathBuf, Error>
+    pub async fn render_form<F, IV>(&self, form: F, styles: &[&Path]) -> Result<PathBuf, Error>
     where
         F: FnOnce() -> IV + Send + 'static,
         IV: IntoView + 'static,
@@ -89,24 +89,20 @@ impl PdfGen {
         use leptos::*;
         use tokio::{fs::File, io::AsyncReadExt};
 
-        let mut dir = std::env::current_dir().unwrap();
+        let pase_path = std::env::current_dir().unwrap();
+        let mut style = String::new();
 
-        let mut main_css_path = dir.clone();
-        main_css_path.push("public");
-        main_css_path.push("main.css");
+        for relative_path in styles {
+            let mut css_path = pase_path.clone();
+            css_path.push(relative_path);
+            let contents = tokio::fs::read_to_string(css_path).await?;
+            style.push_str(&contents);
+        }
 
-        let mut print_css_path = dir.clone();
-        print_css_path.push("public");
-        print_css_path.push("print.css");
-
-        let main_contents = tokio::fs::read_to_string(main_css_path).await?;
-        let print_contents = tokio::fs::read_to_string(print_css_path).await?;
-      
 
         let html = leptos::ssr::render_to_string(move || {
             view! {
-                <style>{main_contents}</style>
-                <style>{print_contents}</style>
+                <style>{style}</style>
                 <div id="print">
                     {form()}
                 </div>

@@ -9,7 +9,7 @@ use server_fn::{
 use strum::Display;
 use time::UtcOffset;
 use ustr::Ustr;
-use std::{fmt::Debug, marker::PhantomData, str::FromStr};
+use std::{fmt::Debug, marker::PhantomData, path::Path, str::FromStr};
 use thiserror::Error;
 
 use crate::{
@@ -261,7 +261,7 @@ where
             />
         </form>
 
-        <Preview />
+        <Preview/>
 
         <Toolbar>
             <ToolbarPageSelect />
@@ -311,14 +311,25 @@ macro_rules! init_nova_forms {
         use i18n::*;
 
         #[component]
-        pub fn NovaFormContextProvider(
+        pub fn NovaFormsContextProvider(
             #[prop(optional)] meta_data: Option<MetaData>,
+            #[prop(optional)] base_url: Option<&'static std::path::Path>,
+            #[prop(optional)] styles: &'static [&'static std::path::Path],
             children: leptos::Children,
         ) -> impl IntoView {
             use std::str::FromStr;
 
             // Provides context that manages stylesheets, titles, meta tags, etc.
             leptos_meta::provide_meta_context();
+
+            provide_context::<NovaFormsContext>(NovaFormsContext {
+                styles,
+                base_url: if let Some(base_url) = base_url {
+                    base_url
+                } else {
+                    std::path::Path::new("/")
+                },
+            });
 
             view! {
                 <I18nContextProvider>
@@ -339,3 +350,10 @@ macro_rules! init_nova_forms {
         }
     };
 }
+
+#[derive(Debug, Clone, Copy)]
+pub struct NovaFormsContext {
+    pub base_url: &'static Path,
+    pub styles: &'static [&'static Path],
+}
+
