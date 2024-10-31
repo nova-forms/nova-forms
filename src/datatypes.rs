@@ -185,23 +185,15 @@ pub trait Datatype: Clone + Display + FromStr<Err = Self::Error> + Into<Self::In
 #[derive(Clone)]
 pub struct TranslationProvider<T>(Rc<dyn Fn(T) -> TextProp>);
 
-/*
-impl<T> TranslationProvider<T> {
-    pub fn t(&self, value: T) -> Cow<'static, str> {
-        (self.0)(value)
-    }
-}
-*/
 
 /// Adds custom translations to a type `T`.
 /// This is useful for adding custom error messages to error enums or other elements.
-pub fn provide_translation<F, T, IV>(f: F)
+pub fn provide_translation<F, T>(f: F)
 where
     T: Clone + 'static,
-    F: Fn(T) -> IV + 'static,
-    IV: Into<TextProp> + 'static,
+    F: Fn(T) -> TextProp + 'static,
 {
-    provide_context(TranslationProvider(Rc::new(move |value| f(value).into())));
+    provide_context(TranslationProvider(Rc::new(f)));
 }
 
 pub fn expect_translation<T>(value: T) -> TextProp
