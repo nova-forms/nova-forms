@@ -11,8 +11,10 @@ mod context {
     #[derive(Debug, Clone)]
     pub(crate) struct InputData {
         pub(crate) page_id: Option<PageId>,
+        #[allow(unused)]
         pub(crate) label: TextProp,
         pub(crate) has_error: bool,
+        #[allow(unused)]
         pub(crate) version: u64,
     }
 

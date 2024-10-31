@@ -39,15 +39,18 @@ pub fn Preview() -> impl IntoView {
 
             function resizePreview() {
                 const preview = document.getElementById("preview");
-                let scaleFactor =  Math.min(1, (window.innerWidth / preview.scrollWidth));
+                let scaleFactor =  Math.min(1, (preview.parentElement.offsetWidth / preview.scrollWidth));
                 if (scaleFactor < 1) {
+                    preview.style.position = "absolute";
                     preview.style.width = "210mm";
                     preview.style.transformOrigin = "top left";
                     preview.style.transform = "scale(" + scaleFactor + ")";
                     preview.style.marginRight = -210 * (1 - scaleFactor) + "mm";
                     preview.style.marginBottom = -preview.scrollHeight * (1 - scaleFactor) + "px";
+                    preview.parentElement.style.height = preview.scrollHeight * scaleFactor + "px";
                 } else {
                     preview.removeAttribute("style");
+                    preview.parentElement.removeAttribute("style");
                 }
             }
 
@@ -62,9 +65,10 @@ pub fn Preview() -> impl IntoView {
         "#</Script>
         <Script src="https://unpkg.com/pagedjs/dist/paged.polyfill.js"></Script>
 
-        <div
-            id="preview"
-            class=move || if nova_form_context.is_preview_mode() { "visible" } else { "hidden" }
-        ></div>
+        <div id="preview-wrapper" class=move || if nova_form_context.is_preview_mode() { "visible" } else { "hidden" }>
+            <div
+                id="preview"
+            ></div>
+        </div>
     }
 }

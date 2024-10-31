@@ -69,17 +69,6 @@ impl PdfGen {
         Ok(output_path)
     }
 
-    async fn read_file(&self, path: PathBuf) -> Result<String, Error> {
-        use tokio::fs::File;
-        use tokio::io::AsyncReadExt;
-
-        let mut file = File::open(path).await?;
-        let mut contents = String::new();
-        file.read_to_string(&mut contents).await?;
-
-        Ok(contents)
-    }
-
     /// Renders a form as a PDF.
     pub async fn render_form<F, IV>(&self, form: F) -> Result<PathBuf, Error>
     where
@@ -87,7 +76,6 @@ impl PdfGen {
         IV: IntoView + 'static,
     {
         use leptos::*;
-        use tokio::{fs::File, io::AsyncReadExt};
 
         let conf = get_configuration(None).await.unwrap();
         let pkg_dir = conf.leptos_options.site_pkg_dir; 

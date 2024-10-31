@@ -24,7 +24,7 @@ impl DialogKind {
 #[component]
 pub fn Dialog(
     kind: DialogKind,
-    #[prop(into)] open: Signal<bool>,
+    #[prop(into, optional, default=true.into())] open: MaybeSignal<bool>,
     #[prop(into, optional)] close: Option<Callback<(), ()>>,
     #[prop(into)] title: TextProp,
     #[prop(into)] msg: TextProp,
