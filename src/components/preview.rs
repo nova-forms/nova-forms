@@ -53,17 +53,11 @@ pub fn Preview() -> impl IntoView {
 
             window.PagedConfig = {
                 auto: false,
-            };
-
-            document.addEventListener("DOMContentLoaded", () => {
-                const preview = document.getElementById("preview");
-                const config = { childList: true, subtree: true };
-                const observer = new MutationObserver(() => {
+                after: () => {
                     resizePreview();
-                });
-                observer.observe(preview, config);
-            });
-
+                }
+            };
+            
             window.addEventListener("resize", resizePreview);
         "#</Script>
         <Script src="https://unpkg.com/pagedjs/dist/paged.polyfill.js"></Script>
