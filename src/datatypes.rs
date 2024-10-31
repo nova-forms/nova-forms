@@ -17,8 +17,7 @@ pub use accept::*;
 use num_bigint::BigInt;
 use num_rational::BigRational;
 
-use leptos::{expect_context, provide_context, use_context, view, Attribute, IntoView, Oco, TextProp, View};
-use std::borrow::Cow;
+use leptos::{expect_context, provide_context, use_context, Attribute, Oco, TextProp};
 use std::error::Error;
 use std::fmt::{Debug, Display};
 use std::rc::Rc;
