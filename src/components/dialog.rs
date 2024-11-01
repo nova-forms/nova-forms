@@ -1,6 +1,6 @@
 use leptos::*;
 
-use crate::IconButton;
+use crate::Button;
 
 #[derive(Copy, Clone, Debug)]
 pub enum DialogKind {
@@ -50,17 +50,17 @@ pub fn Dialog(
                         let msg = msg.clone();
                         move || msg.clone()
                     }</div>
-                    <div class="dialog-footer">
-                        {
-                            if let Some(close) = close {
-                                view! {
-                                    <IconButton icon="close" label="Close" on:click=move |_ev| close.call(()) />
-                                }.into_view()
-                            } else {
-                                View::default()
-                            }
+                    {
+                        if let Some(close) = close {
+                            view! {
+                                <div class="dialog-footer">
+                                    <Button icon="close" label="Close" on:click=move |_ev| close.call(()) />
+                                </div>
+                            }.into_view()
+                        } else {
+                            View::default()
                         }
-                    </div>
+                    }
                 </dialog>
             </div>
         </Show>

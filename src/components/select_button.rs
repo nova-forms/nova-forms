@@ -5,9 +5,9 @@ use leptos::*;
 use crate::Icon;
 
 #[component]
-pub fn IconSelect<V, F, G>(
+pub fn SelectButton<V, F, G>(
     #[prop(into)] label: TextProp,
-    #[prop(into)] icon: String,
+    #[prop(into, optional)] icon: Option<String>,
     #[prop(into)] id: String,
     #[prop(into)] values: Vec<(V, TextProp)>,
     value: G,
@@ -31,7 +31,13 @@ where
 
     view! {
         <label class="overlay icon-select button" for=id.clone()>
-            <Icon label=label icon=icon />
+            {
+                if let Some(icon) = icon {
+                    view! { <Icon label=label icon=icon /> }.into_view()
+                } else {
+                    view! { <span>{label}</span> }.into_view()
+                }
+            }
             <select
                 id=id
                 on:change=move |ev| {

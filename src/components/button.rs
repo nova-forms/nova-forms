@@ -4,10 +4,10 @@ use crate::Icon;
 
 /// A button that only contains an icon.
 #[component]
-pub fn IconButton(
+pub fn Button(
     #[prop(optional, into)] button_type: Option<String>,
     #[prop(into)] label: TextProp,
-    #[prop(into)] icon: String,
+    #[prop(into, optional)] icon: Option<String>,
     #[prop(optional, into)] id: Option<String>,
     #[prop(optional, into)] form: Option<String>,
     #[prop(optional, into)] disabled: Option<MaybeSignal<bool>>,
@@ -20,7 +20,25 @@ pub fn IconButton(
             form=form
             id=id.unwrap_or_default()
         >
-            <Icon label=label icon=icon />
+        {
+            if let Some(icon) = icon {
+                view! { <Icon label=label icon=icon /> }.into_view()
+            } else {
+                view! { <span>{label}</span> }.into_view()
+            }
+        }
         </button>
+    }
+}
+
+/// A button that only contains an icon.
+#[component]
+pub fn ButtonGroup(
+    children: Children
+) -> impl IntoView {
+    view! {
+        <div class="button-group">
+            {children()}
+        </div>
     }
 }

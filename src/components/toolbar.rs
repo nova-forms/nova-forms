@@ -3,13 +3,13 @@ use std::{fmt::Debug, str::FromStr};
 use leptos::*;
 use leptos_i18n::{I18nContext, Locale, LocaleKeys};
 
-use crate::{start_preview, stop_preview, use_translation, IconButton, IconSelect, NovaFormContext, PagesContext, Translation};
+use crate::{start_preview, stop_preview, use_translation, ButtonGroup, Button, SelectButton, NovaFormContext, PagesContext, Translation};
 
 #[component]
 pub fn Toolbar(
     children: Children,
 ) -> impl IntoView {
-    view! { <aside id="toolbar"><div class="button-row">{children()}</div></aside> }
+    view! { <aside id="toolbar"><ButtonGroup>{children()}</ButtonGroup></aside> }
 }
 
 #[component]
@@ -17,7 +17,7 @@ pub fn ToolbarSubmitButton() -> impl IntoView {
     let nova_form_context = expect_context::<NovaFormContext>();
 
     view! {
-        <IconButton
+        <Button
             button_type="submit"
             label=use_translation(Translation::Submit)
             icon="send"
@@ -36,7 +36,7 @@ pub fn ToolbarPreviewButton() -> impl IntoView {
         {move || {
             if nova_form_context.is_preview_mode() {
                 view! {
-                    <IconButton
+                    <Button
                         label=use_translation(Translation::Edit)
                         icon="edit"
                         on:click=move |_| {
@@ -47,7 +47,7 @@ pub fn ToolbarPreviewButton() -> impl IntoView {
                 }
             } else {
                 view! {
-                    <IconButton
+                    <Button
                         label=use_translation(Translation::Preview)
                         icon="visibility"
                         on:click=move |_| {
@@ -118,7 +118,7 @@ where
         .collect::<Vec<_>>();
 
     view! {
-        <IconSelect
+        <SelectButton
             id="language"
             label=use_translation(Translation::Language)
             icon="translate"
@@ -148,7 +148,7 @@ pub fn ToolbarPageSelect(
 
     view! {
         <Show when=move || { pages_context.get().len() > 1 }>
-            <IconSelect
+            <SelectButton
                 id="menu"
                 label=use_translation(Translation::Menu)
                 icon="menu"

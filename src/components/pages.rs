@@ -1,5 +1,5 @@
 use leptos::*;
-use crate::IconButton;
+use crate::{ButtonGroup, Button};
 
 mod context {
     use leptos::TextProp;
@@ -182,14 +182,14 @@ pub fn PageStepper(
 
     view! {
         <div class="stepper">
-            <IconButton
+            <Button
                 label="Previous Page"
                 icon="arrow_back"
                 on:click=move |_| pages_context.update(|pages| pages.prev())
                 disabled=Signal::derive(move || pages_context.get().is_first_selected())
             />
             <div class="stepper-spacer" />
-            <div class="button-row">
+            <ButtonGroup>
             <For
                 each=move || {
                     let pages = pages_context.get().pages().iter().cloned().collect::<Vec<_>>();
@@ -211,9 +211,9 @@ pub fn PageStepper(
                     }
                 }
             />
-            </div>
+            </ButtonGroup>
             <div class="stepper-spacer" />
-            <IconButton
+            <Button
                 label="Next Page"
                 icon="arrow_forward"
                 on:click=move |_| {
@@ -230,14 +230,14 @@ pub fn PagePrevNextButtons() -> impl IntoView {
     let pages_context = expect_context::<RwSignal<PagesContext>>();
 
     view! {
-        <div class="button-row">
-            <IconButton
+        <ButtonGroup>
+            <Button
                 label="Previous Page"
                 icon="arrow_back"
                 on:click=move |_| pages_context.update(|pages| pages.prev())
                 disabled=Signal::derive(move || pages_context.get().is_first_selected())
             />
-            <IconButton
+            <Button
                 label="Next Page"
                 icon="arrow_forward"
                 on:click=move |_| {
@@ -245,6 +245,6 @@ pub fn PagePrevNextButtons() -> impl IntoView {
                 }
                 disabled=Signal::derive(move || pages_context.get().is_last_selected())
             />
-        </div>
+        </ButtonGroup>
     }
 }

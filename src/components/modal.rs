@@ -1,6 +1,6 @@
 use leptos::*;
 
-use crate::IconButton;
+use crate::Button;
 
 use super::DialogKind;
 
@@ -34,17 +34,17 @@ pub fn Modal(
                         let msg = msg.clone();
                         move || msg.clone()
                     }</div>
-                    <div class="modal-footer">
-                        {
-                            if let Some(close) = close {
-                                view! {
-                                    <IconButton icon="close" label="Close" on:click=move |_ev| close.call(()) />
-                                }.into_view()
-                            } else {
-                                View::default()
-                            }
+                    {
+                        if let Some(close) = close {
+                            view! {
+                                <div class="modal-footer">
+                                    <Button icon="close" label="Close" on:click=move |_ev| close.call(()) />
+                                </div>
+                            }.into_view()
+                        } else {
+                            View::default()
                         }
-                    </div>
+                    }
                 </dialog>
             </div>
         </Show>

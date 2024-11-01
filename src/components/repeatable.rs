@@ -1,8 +1,8 @@
 use leptos::*;
 
-use crate::{Group, QueryString};
+use crate::{ButtonGroup, Group, QueryString};
 
-use super::IconButton;
+use super::Button;
 
 /// Creates a repeatable group of items.
 #[component]
@@ -33,15 +33,15 @@ where
                         }
                     }
                 />
-                <div class="button-row">
-                    <IconButton
+                <ButtonGroup>
+                    <Button
                         on:click=move |_| set_size.update(|i| *i -= 1)
                         label="Remove"
                         icon="remove"
                         disabled=Signal::derive(move || size.get() == 0)
                     />
-                    <IconButton on:click=move |_| set_size.update(|i| *i += 1) label="Add" icon="add" />                    
-                </div>
+                    <Button on:click=move |_| set_size.update(|i| *i += 1) label="Add" icon="add" />                    
+                </ButtonGroup>
             </div>
         </Group>
     }
