@@ -4,8 +4,7 @@ use crate::{use_translation, NovaFormContext, QueryString};
 use leptos::*;
 use strum::{IntoEnumIterator, ParseError};
 
-/// A component that renders an input field.
-/// It takes a datatype as a type parameter and automatically handles parsing and validation.
+/// A component that renders radio buttons from an enum.
 #[component]
 pub fn Radio<T>(
     /// The label of the input field.

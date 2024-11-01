@@ -9,7 +9,7 @@ use crate::{start_preview, stop_preview, use_translation, IconButton, IconSelect
 pub fn Toolbar(
     children: Children,
 ) -> impl IntoView {
-    view! { <aside id="toolbar">{children()}</aside> }
+    view! { <aside id="toolbar"><div class="button-row">{children()}</div></aside> }
 }
 
 #[component]

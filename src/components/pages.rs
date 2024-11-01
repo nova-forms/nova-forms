@@ -189,6 +189,7 @@ pub fn PageStepper(
                 disabled=Signal::derive(move || pages_context.get().is_first_selected())
             />
             <div class="stepper-spacer" />
+            <div class="button-row">
             <For
                 each=move || {
                     let pages = pages_context.get().pages().iter().cloned().collect::<Vec<_>>();
@@ -210,6 +211,7 @@ pub fn PageStepper(
                     }
                 }
             />
+            </div>
             <div class="stepper-spacer" />
             <IconButton
                 label="Next Page"
@@ -228,7 +230,7 @@ pub fn PagePrevNextButtons() -> impl IntoView {
     let pages_context = expect_context::<RwSignal<PagesContext>>();
 
     view! {
-        <div>
+        <div class="button-row">
             <IconButton
                 label="Previous Page"
                 icon="arrow_back"

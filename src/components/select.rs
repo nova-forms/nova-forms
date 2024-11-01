@@ -4,8 +4,7 @@ use crate::{use_translation, NovaFormContext, QueryString};
 use leptos::*;
 use strum::{IntoEnumIterator, ParseError};
 
-/// A component that renders an input field.
-/// It takes a datatype as a type parameter and automatically handles parsing and validation.
+/// A component that renders a select field from an enum.
 #[component]
 pub fn Select<T>(
     /// The label of the input field.
@@ -69,28 +68,45 @@ where
             class:ok=move || parsed_value.get().is_ok() && show_error.get()
         >
             <label for=qs.to_string()>{label}</label>
-            <select id=qs.to_string() name=qs.to_string() on:input=move |ev| {
-                set_input_value.set(Some(event_target_value(&ev)));
-            }>
-                <For
-                    each={move || T::iter()}
-                    key={|item| *item}
-                    children={move |item| {
-                        let option_elem = html::option()
-                            .attr("id", format!("{}({})", qs.to_string(), item.into()))
-                            .attr("selected", move || parsed_value.get() == Ok(item))
-                            .attr("value", move || item.into())
-                            .on(ev::input, move |ev| {
-                                set_input_value.set(Some(event_target_value(&ev)));
-                            })
-                            .child(use_translation(item));
-                        
-                        view! {
-                            {option_elem}
-                        }
-                    }}
-                />
-            </select>
+            {move || {
+                let qs = qs.clone();
+
+                if nova_form_context.is_render_mode() {
+                    let text_elem = html::input()
+                        .attr("type", "text")
+                        .attr("readonly", true)
+                        .attr("id", qs.to_string())
+                        .attr("name", qs.to_string())
+                        .attr("value", move || raw_value.get());
+
+                    text_elem.into_view()
+                } else {
+                    view! {
+                        <select id=qs.to_string() name=qs.to_string() on:input=move |ev| {
+                            set_input_value.set(Some(event_target_value(&ev)));
+                        }>
+                            <For
+                                each={move || T::iter()}
+                                key={|item| *item}
+                                children={move |item| {
+                                    let option_elem = html::option()
+                                        .attr("id", format!("{}({})", qs.to_string(), item.into()))
+                                        .attr("selected", move || parsed_value.get() == Ok(item))
+                                        .attr("value", move || item.into())
+                                        .on(ev::input, move |ev| {
+                                            set_input_value.set(Some(event_target_value(&ev)));
+                                        })
+                                        .child(use_translation(item));
+                                    
+                                    view! {
+                                        {option_elem}
+                                    }
+                                }}
+                            />
+                        </select>
+                    }.into_view()
+                }
+            }}
             {move || {
                 if let (Err(err), true) = (
                     parsed_value.get(),

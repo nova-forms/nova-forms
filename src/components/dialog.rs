@@ -21,12 +21,18 @@ impl DialogKind {
     }
 }
 
+/// A dialog component.
 #[component]
 pub fn Dialog(
+    /// The kind of dialog to display.
     kind: DialogKind,
+    /// Whether the dialog is open.
     #[prop(into, optional, default=true.into())] open: MaybeSignal<bool>,
+    /// The callback to close the dialog.
     #[prop(into, optional)] close: Option<Callback<(), ()>>,
+    /// The title of the dialog.
     #[prop(into)] title: TextProp,
+    /// The message of the dialog.
     #[prop(into)] msg: TextProp,
 ) -> impl IntoView {
     view! {
@@ -34,7 +40,6 @@ pub fn Dialog(
             <div class="dialog">
                 <dialog
                     open=open.get()
-                    aria-modal="true"
                     class=kind.class()
                 >
                     <div class="dialog-header">{

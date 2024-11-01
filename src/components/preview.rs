@@ -7,15 +7,17 @@ pub fn start_preview(form_id: &str) {
     let nova_forms_context = expect_context::<NovaFormsContext>();
 
     js_sys::eval(&format!(r#"
-            var preview = document.getElementById("preview");
-            preview.innerHTML = "";
-            var paged = new window.Paged.Previewer();
-            window.previewer = paged;
-            paged.preview(
-                '<div id="print">' + document.getElementById("{}").innerHTML + '</div>',
-                ["{}print.css"],
-                preview
-            );
+            if (document.getElementById("preview-wrapper").classList.contains("visible")) {{
+                var preview = document.getElementById("preview");
+                preview.innerHTML = "";
+                var paged = new window.Paged.Previewer();
+                window.previewer = paged;
+                paged.preview(
+                    '<div id="print">' + document.getElementById("{}").innerHTML + '</div>',
+                    ["{}print.css"],
+                    preview
+                );
+            }}
         "#,
         form_id,
         nova_forms_context.base_url

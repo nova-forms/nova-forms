@@ -12,7 +12,10 @@ pub fn NovaFormWrapper(
     #[prop(into)] title: TextProp,
     /// The subtitle to display in the header.
     #[prop(into)] subtitle: TextProp,
+    /// The footer to display at the bottom of the form.
+    /// By default, there is no footer.
     #[prop(into, optional)] footer: Option<Children>,
+    /// The nova form goes here.
     children: Children,
 ) -> impl IntoView {
     let nova_forms_context = expect_context::<NovaFormsContext>();

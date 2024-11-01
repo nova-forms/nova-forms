@@ -134,31 +134,32 @@ where
         >
             <label for=qs.to_string()>{label}</label>
             {move || {
-                let input_elem = T::attributes()
-                    .into_iter()
-                    .fold(html::input(), |el, (name, value)| el.attr(name, value))
-                    .attr("id", qs.to_string())
-                    .attr("name", qs.to_string())
-                    .attr("value", move || raw_value.get())
-                    .attr("placeholder", placeholder.as_ref().map(T::to_string))
-                    .on(ev::input, move |ev| {
-                        set_input_value.set(Some(event_target_value(&ev)));
-                    });
-            
-                let text_elem = T::attributes()
-                    .into_iter()
-                    .filter(|(name, _)| *name != "type")
-                    .fold(html::input(), |el, (name, value)| el.attr(name, value))
-                    .attr("type", "text")
-                    .attr("readonly", true)
-                    .attr("id", qs.to_string())
-                    .attr("name", qs.to_string())
-                    .attr("value", move || raw_value.get());
 
                 if nova_form_context.is_render_mode() {
-                    {text_elem}
+                    let text_elem = T::attributes()
+                        .into_iter()
+                        .filter(|(name, _)| *name != "type")
+                        .fold(html::input(), |el, (name, value)| el.attr(name, value))
+                        .attr("type", "text")
+                        .attr("readonly", true)
+                        .attr("id", qs.to_string())
+                        .attr("name", qs.to_string())
+                        .attr("value", move || raw_value.get());
+
+                    text_elem
                 } else {
-                    {input_elem}
+                    let input_elem = T::attributes()
+                        .into_iter()
+                        .fold(html::input(), |el, (name, value)| el.attr(name, value))
+                        .attr("id", qs.to_string())
+                        .attr("name", qs.to_string())
+                        .attr("value", move || raw_value.get())
+                        .attr("placeholder", placeholder.as_ref().map(T::to_string))
+                        .on(ev::input, move |ev| {
+                            set_input_value.set(Some(event_target_value(&ev)));
+                        });
+
+                    input_elem
                 }
             }}
             {move || {

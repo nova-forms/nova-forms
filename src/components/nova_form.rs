@@ -13,7 +13,7 @@ use std::{fmt::Debug, marker::PhantomData, str::FromStr};
 use thiserror::Error;
 
 use crate::{
-    local_utc_offset, use_translation, FormDataSerialized, InputsContext, Modal, DialogKind, PagesContext, Preview, QueryString, Toolbar, ToolbarLocaleSelect, ToolbarPageSelect, ToolbarPreviewButton, ToolbarSubmitButton
+    local_utc_offset, use_translation, DialogKind, FormDataSerialized, InputsContext, Modal, PagesContext, Preview, QueryString, Toolbar, ToolbarLocaleSelect, ToolbarPageSelect, ToolbarPreviewButton, ToolbarSubmitButton
 };
 
 use super::{InputData, PageContext};
@@ -53,7 +53,6 @@ pub struct NovaFormContext {
     preview: RwSignal<bool>,
     trigger_validation: RwSignal<Version>,
     inputs: RwSignal<InputsContext>,
-    render: RwSignal<bool>,
 }
 
 impl NovaFormContext {
@@ -71,7 +70,7 @@ impl NovaFormContext {
     }
 
     pub fn is_render_mode(&self) -> bool {
-        self.render.get() || self.preview.get()
+        self.preview.get()
     }
 
     pub fn is_preview_mode(&self) -> bool {
@@ -83,12 +82,10 @@ impl NovaFormContext {
     }
 
     pub fn preview_mode(&self) {
-        self.render.set(true);
         self.preview.set(true);
     }
 
     pub fn edit_mode(&self) {
-        self.render.set(false);
         self.preview.set(false);
     }
 
@@ -129,16 +126,26 @@ impl NovaFormContext {
     }
 }
 
+/// Creates a new nova form.
+/// The form will automatically handle validation, serialization, and submission.
+/// This implicitly creates a HTML form tag that contains your entire form.
+/// It also provides a toolbar with a page select, locale select, preview button, and submit button.
 #[component]
 pub fn NovaForm<F, ServFn, L, K>(
+    /// The initial form data for prefilling.
     #[prop(optional)] form_data: F,
+    /// The server function that will be called when the form is submitted.
     on_submit: Action<ServFn, Result<(), ServerFnError>>,
+    /// The query string that binds the form to the form data.
     #[prop(into)] bind: QueryString,
+    /// The query string that binds the form to the metadata.
     #[prop(into)] bind_meta_data: QueryString,
-    #[prop(optional)] _arg: PhantomData<ServFn>,
+    /// The i18n context.
+    /// This is used to set the locale of the form in the toolbar.
     i18n: I18nContext<L, K>,
+    /// The content of the form.
     children: Children,
-    #[prop(optional)] render: bool,
+    #[prop(optional)] _arg: PhantomData<ServFn>,
 ) -> impl IntoView
 where
     F: Default + Clone + Serialize + Debug + 'static,
@@ -163,11 +170,10 @@ where
     provide_context(form_data_serialized.clone());
 
     let preview = create_rw_signal(false);
-    let render = create_rw_signal(render);
     let form_id = Ustr::from("nova-form");
     let inputs = create_rw_signal(InputsContext::new());
     let trigger_validation = create_rw_signal(0);
-    let nova_form_context = NovaFormContext { preview, form_id, trigger_validation, inputs, render };
+    let nova_form_context = NovaFormContext { preview, form_id, trigger_validation, inputs };
     provide_context(nova_form_context);
 
     let (submit_state, set_submit_state) = create_signal(SubmitState::Initial);
@@ -284,14 +290,14 @@ where
             open=Signal::derive(move || matches!(submit_state.get(), SubmitState::Pending))
             kind=DialogKind::Info
             title={use_translation(Translation::Submit)}
-            msg={use_translation(submit_state.get())}
+            msg={use_translation::<SubmitState, _>(submit_state)}
         />
 
         <Modal
             open=Signal::derive(move || matches!(submit_state.get(), SubmitState::Error(_)))
             kind=DialogKind::Error
             title={use_translation(Translation::Submit)}
-            msg={use_translation(submit_state.get())}
+            msg={use_translation::<SubmitState, _>(submit_state)}
             close=move |()| set_submit_state.set(SubmitState::Initial)
         />
     
@@ -299,7 +305,7 @@ where
             open=Signal::derive(move || matches!(submit_state.get(), SubmitState::Success))
             kind=DialogKind::Success
             title={use_translation(Translation::Submit)}
-            msg={use_translation(submit_state.get())}
+            msg={use_translation::<SubmitState, _>(submit_state)}
             close=move |()| set_submit_state.set(SubmitState::Initial)
         />
         

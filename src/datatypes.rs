@@ -8,6 +8,7 @@ mod accept;
 
 pub use email::*;
 pub use non_empty_string::*;
+use serde::de::value;
 pub use telephone::*;
 pub use date_time::*;
 pub use date::*;
@@ -17,7 +18,7 @@ pub use accept::*;
 use num_bigint::BigInt;
 use num_rational::BigRational;
 
-use leptos::{expect_context, provide_context, use_context, Attribute, Oco, TextProp};
+use leptos::*;
 use std::error::Error;
 use std::fmt::{Debug, Display};
 use std::rc::Rc;
@@ -195,23 +196,27 @@ where
     provide_context(TranslationProvider(Rc::new(f)));
 }
 
-pub fn expect_translation<T>(value: T) -> TextProp
+pub fn expect_translation<T, F>(value: F) -> TextProp
 where
+    F: Into<MaybeSignal<T>>,
     T: Clone + 'static,
 {
+    let value = value.into();
     let translation_provider = expect_context::<TranslationProvider<T>>();
-    translation_provider.0(value.clone())
+    (move || translation_provider.0(value.get()).get()).into()
 }
 
-pub fn use_translation<T>(value: T) -> TextProp
+pub fn use_translation<T, F>(value: F) -> TextProp
 where
+    F: Into<MaybeSignal<T>>,
     T: Clone + Display + 'static,
 {
+    let value = value.into();
     let translation_provider: Option<TranslationProvider<T>> = use_context::<TranslationProvider<T>>();
     if let Some(translation_provider) = translation_provider {
-        translation_provider.0(value.clone())
+        (move || translation_provider.0(value.get()).get()).into()
     } else {
-        format!("{}", value).into()
+        (move || format!("{}", value.get())).into()
     }
     
 }

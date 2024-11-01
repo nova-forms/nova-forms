@@ -33,13 +33,15 @@ where
                         }
                     }
                 />
-                <IconButton
-                    on:click=move |_| set_size.update(|i| *i -= 1)
-                    label="Remove"
-                    icon="remove"
-                    disabled=Signal::derive(move || size.get() == 0)
-                />
-                <IconButton on:click=move |_| set_size.update(|i| *i += 1) label="Add" icon="add" />
+                <div class="button-row">
+                    <IconButton
+                        on:click=move |_| set_size.update(|i| *i -= 1)
+                        label="Remove"
+                        icon="remove"
+                        disabled=Signal::derive(move || size.get() == 0)
+                    />
+                    <IconButton on:click=move |_| set_size.update(|i| *i += 1) label="Add" icon="add" />                    
+                </div>
             </div>
         </Group>
     }

@@ -1,8 +1,7 @@
 use crate::{use_translation, Datatype, NovaFormContext, QueryString};
 use leptos::*;
 
-/// A component that renders an input field.
-/// It takes a datatype as a type parameter and automatically handles parsing and validation.
+/// A component that renders a checkbox.
 #[component]
 pub fn Checkbox<T>(
     /// The label of the input field.

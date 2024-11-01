@@ -4,12 +4,18 @@ use crate::IconButton;
 
 use super::DialogKind;
 
+/// A modal dialog.
 #[component]
 pub fn Modal(
+    /// The kind of dialog to display.
     kind: DialogKind,
+    /// Whether the dialog is open.
     #[prop(into)] open: Signal<bool>,
+    /// The callback to close the dialog.
     #[prop(into, optional)] close: Option<Callback<(), ()>>,
+    /// The title of the dialog.
     #[prop(into)] title: TextProp,
+    /// The message of the dialog.
     #[prop(into)] msg: TextProp,
 ) -> impl IntoView {
     view! {

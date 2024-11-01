@@ -15,6 +15,8 @@ mod preview;
 mod checkbox;
 mod radio;
 mod dialog;
+mod cols;
+mod print;
 
 pub use file_upload::*;
 pub use nova_form_wrapper::*;
@@ -31,5 +33,7 @@ pub use select::*;
 pub use checkbox::*;
 pub use radio::*;
 pub use dialog::*;
+pub use cols::*;
+pub use print::*;
 pub(crate) use toolbar::*;
 pub(crate) use preview::*;
