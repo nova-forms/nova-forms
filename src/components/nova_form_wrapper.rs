@@ -1,6 +1,6 @@
 use leptos::*;
 
-use crate::NovaFormsContext;
+use crate::BaseContext;
 
 /// A container for a form.
 /// Adds a header with a logo, title, and subtitle, as well as a footer with the title.
@@ -18,12 +18,12 @@ pub fn NovaFormWrapper(
     /// The nova form goes here.
     children: Children,
 ) -> impl IntoView {
-    let nova_forms_context = expect_context::<NovaFormsContext>();
+    let base_context = expect_context::<BaseContext>();
 
     view! {
         <header>
             <div class="content">  
-                <img id="logo" src=format!("{}{}", nova_forms_context.base_url, logo) />
+                <img id="logo" src=base_context.resolve_path(logo) />
                 <div id="name">
                     <span id="title">{title.clone()}</span>
                     <br />
@@ -31,10 +31,6 @@ pub fn NovaFormWrapper(
                 </div>
             </div>
         </header>
-        <nav>
-            <div class="content">
-            </div>
-        </nav>
         <main>
             <div class="content">
                 {children()}

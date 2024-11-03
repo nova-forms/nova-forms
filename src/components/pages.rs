@@ -182,45 +182,45 @@ pub fn PageStepper(
 
     view! {
         <div class="stepper">
-            <Button
-                label="Previous Page"
-                icon="arrow_back"
-                on:click=move |_| pages_context.update(|pages| pages.prev())
-                disabled=Signal::derive(move || pages_context.get().is_first_selected())
-            />
-            <div class="stepper-spacer" />
             <ButtonGroup>
-            <For
-                each=move || {
-                    let pages = pages_context.get().pages().iter().cloned().collect::<Vec<_>>();
-                    pages
-                }
-                key=|page| page.id()
-                children=move |page| {
-                    let page_id = page.id();
-                    view! {
-                        <button
-                            class="icon-button stepper-page-number"
-                            on:click=move |_| {
-                                pages_context.update(|pages_context| pages_context.select(page_id))
-                            }
-                            disabled=move || pages_context.get().is_selected(page_id)
-                        >
-                            <span>{move || page.idx() + 1}</span>
-                        </button>
+                <Button
+                    label="Previous Page"
+                    icon="arrow_back"
+                    on:click=move |_| pages_context.update(|pages| pages.prev())
+                    disabled=Signal::derive(move || pages_context.get().is_first_selected())
+                />
+                <div class="stepper-spacer" />
+                <For
+                    each=move || {
+                        let pages = pages_context.get().pages().iter().cloned().collect::<Vec<_>>();
+                        pages
                     }
-                }
-            />
+                    key=|page| page.id()
+                    children=move |page| {
+                        let page_id = page.id();
+                        view! {
+                            <button
+                                class="icon-button stepper-page-number"
+                                on:click=move |_| {
+                                    pages_context.update(|pages_context| pages_context.select(page_id))
+                                }
+                                disabled=move || pages_context.get().is_selected(page_id)
+                            >
+                                <span>{move || page.idx() + 1}</span>
+                            </button>
+                        }
+                    }
+                />
+                <div class="stepper-spacer" />
+                <Button
+                    label="Next Page"
+                    icon="arrow_forward"
+                    on:click=move |_| {
+                        pages_context.update(|pages_context| pages_context.next());
+                    }
+                    disabled=Signal::derive(move || pages_context.get().is_last_selected())
+                />
             </ButtonGroup>
-            <div class="stepper-spacer" />
-            <Button
-                label="Next Page"
-                icon="arrow_forward"
-                on:click=move |_| {
-                    pages_context.update(|pages_context| pages_context.next());
-                }
-                disabled=Signal::derive(move || pages_context.get().is_last_selected())
-            />
         </div>
     }
 }

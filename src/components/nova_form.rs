@@ -2,6 +2,7 @@ use ev::SubmitEvent;
 use leptos::*;
 use leptos_i18n::*;
 use leptos_router::*;
+use leptos_meta::*;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use server_fn::{
     client::Client, codec::PostUrl, error::NoCustomError, request::ClientReq, ServerFn,
@@ -9,7 +10,7 @@ use server_fn::{
 use strum::Display;
 use time::UtcOffset;
 use ustr::Ustr;
-use std::{fmt::Debug, marker::PhantomData, str::FromStr};
+use std::{fmt::Debug, marker::PhantomData, ops::Deref, path::{Path, PathBuf}, str::FromStr};
 use thiserror::Error;
 
 use crate::{
@@ -47,6 +48,85 @@ pub enum SubmitState {
 
 pub(crate) type Version = u64;
 
+#[derive(Debug, Clone)]
+pub struct RenderContext {
+    form_data: FormDataSerialized,
+    meta_data: MetaData,
+}
+
+impl RenderContext {
+    pub fn new<F>(form_data: &F, meta_data: MetaData) -> Self
+    where
+        F: Serialize,
+    {
+        Self {
+            meta_data,
+            form_data: FormDataSerialized::from_form_data(form_data),
+        }
+    }
+
+    pub fn form_data(&self) -> &FormDataSerialized {
+        &self.form_data
+    }
+
+    pub fn meta_data(&self) -> &MetaData {
+        &self.meta_data
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SiteAddr(String);
+
+impl Deref for SiteAddr {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl From<String> for SiteAddr {
+    fn from(addr: String) -> Self {
+        Self(addr)
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct BaseContext {
+    base_url: PathBuf,
+}
+
+impl BaseContext {
+    pub fn new(base_url: PathBuf) -> Self {
+        Self { base_url }
+    }
+
+    pub fn base_url(&self) -> &PathBuf {
+        &self.base_url
+    }
+
+    pub fn resolve_path<P: AsRef<Path>>(&self, path: P) -> String {
+        let mut path = path.as_ref().to_owned();
+        if path.is_absolute() {
+           path = path.strip_prefix("/").unwrap().to_owned();
+        }
+        if use_context::<RenderContext>().is_some() {
+            format!("{}", expect_context::<SiteRoot>().0.join(path).display())
+        } else {
+            format!("{}", self.base_url.join(path).display())
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct SiteRoot(PathBuf);
+
+impl From<PathBuf> for SiteRoot {
+    fn from(path: PathBuf) -> Self {
+        Self(path)
+    }
+}
+
 #[derive(Debug, Clone, Copy)]
 pub struct NovaFormContext {
     form_id: Ustr,
@@ -70,7 +150,7 @@ impl NovaFormContext {
     }
 
     pub fn is_render_mode(&self) -> bool {
-        self.preview.get()
+        self.preview.get() || use_context::<RenderContext>().is_some()
     }
 
     pub fn is_preview_mode(&self) -> bool {
@@ -131,9 +211,7 @@ impl NovaFormContext {
 /// This implicitly creates a HTML form tag that contains your entire form.
 /// It also provides a toolbar with a page select, locale select, preview button, and submit button.
 #[component]
-pub fn NovaForm<F, ServFn, L, K>(
-    /// The initial form data for prefilling.
-    #[prop(optional)] form_data: F,
+pub fn NovaForm<ServFn, L, K>(
     /// The server function that will be called when the form is submitted.
     on_submit: Action<ServFn, Result<(), ServerFnError>>,
     /// The query string that binds the form to the form data.
@@ -148,7 +226,6 @@ pub fn NovaForm<F, ServFn, L, K>(
     #[prop(optional)] _arg: PhantomData<ServFn>,
 ) -> impl IntoView
 where
-    F: Default + Clone + Serialize + Debug + 'static,
     ServFn: DeserializeOwned + Serialize
         + ServerFn<InputEncoding = PostUrl, Error = NoCustomError, Output = ()>
         + 'static,
@@ -164,7 +241,14 @@ where
     //let (local_storage, set_local_storage, _) = use_local_storage::<Option<FormDataSerialized>, FromToStringCodec>("form_data");
     //logging::log!("Form data local storage: {:?}, provided {:?}", local_storage.get(), form_data);
 
-    let form_data_serialized = FormDataSerialized::from(form_data);
+    let base_context = expect_context::<BaseContext>();
+    let render_context = use_context::<RenderContext>();
+
+    let form_data_serialized = if let Some(render_context) = &render_context {
+        render_context.form_data().clone()
+    } else {
+        FormDataSerialized::default()
+    };
 
     provide_context(bind.clone());
     provide_context(form_data_serialized.clone());
@@ -254,6 +338,16 @@ where
         }
     };
     view! {
+        {
+            if let Some(_) = &render_context {
+                view! {
+                    <Stylesheet href=base_context.resolve_path("/print.css") />
+                }.into_view()
+            } else {
+                View::default()
+            }
+        }
+
         <form
             id=form_id.as_str()
             novalidate
@@ -274,7 +368,7 @@ where
                 name=bind_meta_data.clone().add_key("local_utc_offset")
                 value=move || local_utc_offset().to_string()
             />
-        </form>
+        </form> 
 
         <Preview/>
 
@@ -320,45 +414,40 @@ pub struct MetaData {
 
 #[macro_export]
 macro_rules! init_nova_forms {
-    () => {
+    ($($base_url:literal)?) => {
         // Initializes the locales for the form.
         leptos_i18n::load_locales!();
         use i18n::*;
 
         #[component]
-        pub fn NovaFormsContextProvider(
-            #[prop(optional)] meta_data: Option<MetaData>,
-            #[prop(optional, into)] base_url: Option<String>,
+        pub fn BaseContextProvider(
+            //#[prop(into, optional)] base_url: Option<String>,
             children: leptos::Children,
         ) -> impl IntoView {
             use std::str::FromStr;
+            use std::path::PathBuf;
 
             // Provides context that manages stylesheets, titles, meta tags, etc.
             leptos_meta::provide_meta_context();
 
-            let base_url = {
-                if let Some(mut base_url) = base_url {
-                    if !base_url.ends_with('/') {
-                        base_url = format!("{}/", base_url);
-                    }
-                    if !base_url.starts_with('/') {
-                        base_url = format!("/{}", base_url);
-                    }
-                    base_url
-                } else {
-                    String::from("/")
-                }
+            /*
+            let base_url = if let Some(base_url) = base_url {
+                PathBuf::from("/").join(base_url)
+            } else {
+                PathBuf::from("/")
             };
+            */
+            #[allow(unused_mut)]
+            let mut base_url = PathBuf::from("/");
+            $(base_url = PathBuf::from($base_url);)?
 
-            provide_context::<NovaFormsContext>(NovaFormsContext {
-                base_url: base_url.clone(),
-            });
+            let base_context = $crate::BaseContext::new(base_url.clone());
+            provide_context(base_context.clone());
 
             view! {
                 // Injects a stylesheet into the document <head>.
                 // id=leptos means cargo-leptos will hot-reload this stylesheet.
-                <Stylesheet id="leptos" href={format!("{}pkg/app.css", base_url)} />
-
+                <Stylesheet id="leptos" href=base_context.resolve_path("/pkg/app.css") />
                 <Link
                     rel="stylesheet"
                     href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0"
@@ -366,13 +455,6 @@ macro_rules! init_nova_forms {
 
                 <I18nContextProvider>
                     {
-                        let i18n = use_i18n();
-
-                        // Sets the locale from the meta data.
-                        if let Some(meta_data) = meta_data {
-                            i18n.set_locale(i18n::Locale::from_str(meta_data.locale.as_str()).unwrap());
-                        }
-
                         view! {
                             {children()}
                         }
@@ -380,11 +462,40 @@ macro_rules! init_nova_forms {
                 </I18nContextProvider>
             }
         }
+
+        #[component]
+        pub fn RenderContextProvider<F>(
+            form_data: F,
+            meta_data: MetaData,
+            children: leptos::Children,
+        ) -> impl IntoView
+        where
+            F: Serialize + 'static,
+        {
+            use std::str::FromStr;
+
+            let locale = meta_data.locale.clone();
+
+            // Adds the render context.
+            provide_context($crate::RenderContext::new(&form_data, meta_data));
+                        
+            view! {
+                <BaseContextProvider>
+                    {
+                        // Sets the locale from the meta data.
+                        let i18n = use_i18n();
+                        i18n.set_locale(i18n::Locale::from_str(&locale).unwrap());
+                        
+                        let base_context = expect_context::<$crate::BaseContext>();
+                      
+                        view! {
+                            <Stylesheet href=base_context.resolve_path("/print.css") />
+
+                            {children()}
+                        }
+                    }
+                </BaseContextProvider>
+            }
+        }
     };
 }
-
-#[derive(Debug, Clone)]
-pub struct NovaFormsContext {
-    pub base_url: String,
-}
-

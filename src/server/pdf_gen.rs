@@ -7,11 +7,13 @@ use std::{
 use thiserror::Error;
 use tokio::{fs::File, io::AsyncWriteExt, process::Command};
 use uuid::Uuid;
+use crate::SiteRoot;
 
 /// A PDF generator.
 #[derive(Clone)]
 pub struct PdfGen {
     settings: Arc<Settings>,
+    site_root: PathBuf,
 }
 
 struct Settings {
@@ -28,9 +30,13 @@ impl Default for Settings {
 
 impl PdfGen {
     /// Creates a new `PdfGen`.
-    pub fn new() -> Self {
+    pub async fn new() -> Self {
+        let conf = leptos::get_configuration(None).await.unwrap();
+        let site_root = std::env::current_dir().unwrap().join(conf.leptos_options.site_root);
+
         Self {
             settings: Arc::new(Settings::default()),
+            site_root
         }
     }
 
@@ -72,11 +78,13 @@ impl PdfGen {
     /// Renders a form as a PDF.
     pub async fn render_form<F, IV>(&self, form: F) -> Result<PathBuf, Error>
     where
-        F: FnOnce() -> IV + Send + 'static,
+        F: FnOnce() -> IV + 'static,
         IV: IntoView + 'static,
     {
         use leptos::*;
-
+        use leptos_meta::*;
+        use std::sync::{Arc, OnceLock};
+        /* 
         let conf = get_configuration(None).await.unwrap();
         let pkg_dir = conf.leptos_options.site_pkg_dir; 
         let site_root = conf.leptos_options.site_root;
@@ -102,17 +110,28 @@ impl PdfGen {
             style.push_str(&contents);
             style.push_str("\n");
         }
+        */
+
+        let site_root = self.site_root.clone();
+        let head_metadata = Arc::new(OnceLock::new());
         
+        let head_metadata_clone = head_metadata.clone();
         let html = leptos::ssr::render_to_string(move || {
-            view! {
-                <style>{style}</style>
+            provide_context(SiteRoot::from(site_root));
+
+            let view = view! {
                 <div id="print">
                     {form()}
                 </div>
-            }
-            .into_view()
+            };
+
+            head_metadata_clone.set(generate_head_metadata()).unwrap();
+
+            view
         })
         .into_owned();
+
+        let html = format!("<head>{}{}</body>", head_metadata.get().unwrap(), html);
 
         let output_path = self.render_html(html).await?;
 

@@ -149,9 +149,12 @@ impl Display for QueryString {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct FormDataSerialized(HashMap<QueryString, String>);
 
-impl<F: Serialize> From<F> for FormDataSerialized {
-    fn from(form_data: F) -> Self {
-        let serialized = serde_qs::to_string(&form_data).expect("must be serializable");
+impl FormDataSerialized {
+    pub fn from_form_data<F>(form_data: &F) -> Self
+    where
+        F: Serialize,
+    {
+        let serialized = serde_qs::to_string(form_data).expect("must be serializable");
         FormDataSerialized::from_str(&serialized).unwrap()
     }
 }

@@ -1,10 +1,12 @@
 use leptos::*;
 use leptos_meta::*;
 
-use crate::{NovaFormContext, NovaFormsContext};
+use crate::NovaFormContext;
+
+use super::BaseContext;
 
 pub fn start_preview(form_id: &str) {
-    let nova_forms_context = expect_context::<NovaFormsContext>();
+    let base_context = expect_context::<BaseContext>();
 
     js_sys::eval(&format!(r#"
             if (document.getElementById("preview-wrapper").classList.contains("visible")) {{
@@ -14,13 +16,13 @@ pub fn start_preview(form_id: &str) {
                 window.previewer = paged;
                 paged.preview(
                     '<div id="print">' + document.getElementById("{}").innerHTML + '</div>',
-                    ["{}print.css"],
+                    ["{}"],
                     preview
                 );
             }}
         "#,
         form_id,
-        nova_forms_context.base_url
+        base_context.resolve_path("/print.css")
     )).ok();
 }
 
@@ -57,11 +59,21 @@ pub fn Preview() -> impl IntoView {
             }
 
             window.PagedConfig = {
-                auto: false,
-                after: () => {
-                    resizePreview();
-                }
+                auto: false
             };
+
+            window.addEventListener("DOMContentLoaded", function() {
+                const previewObserver = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        resizePreview();
+                    });
+                });
+                
+                previewObserver.observe(document.getElementById("preview"), {
+                    childList: true,
+                    subtree: true
+                });
+            });
             
             window.addEventListener("resize", resizePreview);
         "#</Script>
