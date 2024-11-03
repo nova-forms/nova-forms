@@ -2,6 +2,8 @@ use leptos::*;
 
 use crate::Button;
 
+/// The kind of dialog to display.
+/// There are four kinds of dialogs: success, info, warn, and error.
 #[derive(Copy, Clone, Debug)]
 pub enum DialogKind {
     Success,

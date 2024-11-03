@@ -1,5 +1,10 @@
 use leptos::*;
 
+/// Provides a service to get the city for a given swiss zip code.
+/// This uses the swiss postal service address checker API (`https://service.post.ch/zopa/app/api/addresschecker/v1/zips`).
+/// Returns a tuple that contains a function which takes an input event, and a signal that contains the city name.
+/// The function taking an input event can be added to a input field and triggers the service call when the input field changes.
+/// The response of the service call is stored in the signal.
 pub fn use_zip_service() -> (impl Fn(leptos::ev::Event), Signal<Option<String>>) {
     let (zip, set_zip) = create_signal(String::new());
     let zip_service = create_server_action::<ZipService>();

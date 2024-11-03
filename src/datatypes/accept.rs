@@ -14,6 +14,8 @@ use super::Datatype;
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Serialize)]
 pub struct Accept(bool);
 
+/// The error type for the `Accept` datatype.
+/// This error is returned when the input is not accepted and can be used to display an error message by providing a custom translation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum AcceptError {
     #[error("not accepted")]

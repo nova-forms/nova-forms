@@ -12,6 +12,8 @@ use super::Datatype;
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Serialize)]
 pub struct NonEmptyString(String);
 
+/// The error type for the `NonEmptyString` datatype.
+/// This error is returned when the input is an empty string and can be used to display an error message by providing a custom translation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum NonEmptyStringError {
     #[error("empty string")]

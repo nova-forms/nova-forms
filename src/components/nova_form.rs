@@ -2,7 +2,6 @@ use ev::SubmitEvent;
 use leptos::*;
 use leptos_i18n::*;
 use leptos_router::*;
-use leptos_meta::*;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use server_fn::{
     client::Client, codec::PostUrl, error::NoCustomError, request::ClientReq, ServerFn,
@@ -10,7 +9,7 @@ use server_fn::{
 use strum::Display;
 use time::UtcOffset;
 use ustr::Ustr;
-use std::{fmt::Debug, marker::PhantomData, ops::Deref, path::{Path, PathBuf}, str::FromStr};
+use std::{fmt::Debug, marker::PhantomData, path::{Path, PathBuf}, str::FromStr};
 use thiserror::Error;
 
 use crate::{
@@ -19,6 +18,8 @@ use crate::{
 
 use super::{InputData, PageContext};
 
+/// Can be used to provide custom translations.
+/// If not provided, the default english translations will be used.
 #[derive(Clone, Copy, Debug, Display)]
 pub enum Translation {
     Submit,
@@ -28,6 +29,7 @@ pub enum Translation {
     Menu,
 }
 
+/// Possible errors that can occur when submitting a form.
 #[derive(Error, Debug, Clone)]
 pub enum SubmitError {
     #[error("the form contains errors")]
@@ -38,6 +40,7 @@ pub enum SubmitError {
     ServerError(ServerFnError),
 }
 
+/// The current state of the form submission.
 #[derive(Clone, Display)]
 pub enum SubmitState {
     Initial,
@@ -48,6 +51,8 @@ pub enum SubmitState {
 
 pub(crate) type Version = u64;
 
+/// The context that is used to render the form.
+/// This context is only available in the backend.
 #[derive(Debug, Clone)]
 pub struct RenderContext {
     form_data: FormDataSerialized,
@@ -65,32 +70,18 @@ impl RenderContext {
         }
     }
 
+    /// The form data is used to fill the form with data.
     pub fn form_data(&self) -> &FormDataSerialized {
         &self.form_data
     }
 
+    /// The meta data is used to set the locale of the form.
     pub fn meta_data(&self) -> &MetaData {
         &self.meta_data
     }
 }
 
-#[derive(Debug, Clone)]
-pub struct SiteAddr(String);
-
-impl Deref for SiteAddr {
-    type Target = str;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl From<String> for SiteAddr {
-    fn from(addr: String) -> Self {
-        Self(addr)
-    }
-}
-
+/// The base context provides general information about the environment.
 #[derive(Debug, Clone)]
 pub struct BaseContext {
     base_url: PathBuf,
@@ -101,6 +92,7 @@ impl BaseContext {
         Self { base_url }
     }
 
+    /// The base context is used to resolve paths.
     pub fn base_url(&self) -> &PathBuf {
         &self.base_url
     }
@@ -116,6 +108,21 @@ impl BaseContext {
             format!("{}", self.base_url.join(path).display())
         }
     }
+}
+
+#[test]
+fn test_base_context_resolve_path() {
+    let base_context = BaseContext::new(PathBuf::from("/"));
+    assert_eq!(base_context.resolve_path("/pkg/app.css"), "/pkg/app.css");
+    assert_eq!(base_context.resolve_path("pkg/app.css"), "/pkg/app.css");
+    assert_eq!(base_context.resolve_path("app.css"), "/app.css");
+    assert_eq!(base_context.resolve_path("/app.css"), "/app.css");
+
+    let base_context = BaseContext::new(PathBuf::from("/site"));
+    assert_eq!(base_context.resolve_path("/pkg/app.css"), "/site/pkg/app.css");
+    assert_eq!(base_context.resolve_path("pkg/app.css"), "/site/pkg/app.css");
+    assert_eq!(base_context.resolve_path("app.css"), "/site/app.css");
+    assert_eq!(base_context.resolve_path("/app.css"), "/site/app.css");
 }
 
 #[derive(Debug, Clone)]
@@ -241,7 +248,6 @@ where
     //let (local_storage, set_local_storage, _) = use_local_storage::<Option<FormDataSerialized>, FromToStringCodec>("form_data");
     //logging::log!("Form data local storage: {:?}, provided {:?}", local_storage.get(), form_data);
 
-    let base_context = expect_context::<BaseContext>();
     let render_context = use_context::<RenderContext>();
 
     let form_data_serialized = if let Some(render_context) = &render_context {
@@ -338,16 +344,6 @@ where
         }
     };
     view! {
-        {
-            if let Some(_) = &render_context {
-                view! {
-                    <Stylesheet href=base_context.resolve_path("/print.css") />
-                }.into_view()
-            } else {
-                View::default()
-            }
-        }
-
         <form
             id=form_id.as_str()
             novalidate
@@ -406,6 +402,10 @@ where
     }
 }
 
+/// The metadata of the form.
+/// This contains useful information about the client environment.
+/// The `locale` identifies the language of the client.
+/// The `local_utc_offset` identifies the timezone of the client.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MetaData {
     pub locale: String,
@@ -430,16 +430,11 @@ macro_rules! init_nova_forms {
             // Provides context that manages stylesheets, titles, meta tags, etc.
             leptos_meta::provide_meta_context();
 
-            /*
-            let base_url = if let Some(base_url) = base_url {
-                PathBuf::from("/").join(base_url)
-            } else {
-                PathBuf::from("/")
-            };
-            */
             #[allow(unused_mut)]
             let mut base_url = PathBuf::from("/");
             $(base_url = PathBuf::from($base_url);)?
+
+            leptos::logging::log!("base url is {:?}", base_url);
 
             let base_context = $crate::BaseContext::new(base_url.clone());
             provide_context(base_context.clone());
@@ -447,7 +442,7 @@ macro_rules! init_nova_forms {
             view! {
                 // Injects a stylesheet into the document <head>.
                 // id=leptos means cargo-leptos will hot-reload this stylesheet.
-                <Stylesheet id="leptos" href=base_context.resolve_path("/pkg/app.css") />
+                <Stylesheet id="leptos" href=base_context.resolve_path("pkg/app.css") />
                 <Link
                     rel="stylesheet"
                     href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0"
@@ -489,7 +484,7 @@ macro_rules! init_nova_forms {
                         let base_context = expect_context::<$crate::BaseContext>();
                       
                         view! {
-                            <Stylesheet href=base_context.resolve_path("/print.css") />
+                            <Stylesheet href=base_context.resolve_path("print.css") />
 
                             {children()}
                         }

@@ -69,17 +69,17 @@ impl Display for DateTime {
 }
 
 impl FromStr for DateTime {
-    type Err = OffsetDateTimeError;
+    type Err = DateTimeError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Ok(DateTime(time::PrimitiveDateTime::parse(s, format_description!("[year]-[month]-[day]T[hour]:[minute]"))?))
     }
 }
 
-
-
+/// The error type for the `DateTime` datatype.
+/// This error is returned when the input is not a valid date and time and can be used to display an error message by providing a custom translation.
 #[derive(Debug, Error, Clone)]
-pub enum OffsetDateTimeError {
+pub enum DateTimeError {
     #[error(transparent)]
     Parse(#[from] time::error::Parse),
     #[error(transparent)]

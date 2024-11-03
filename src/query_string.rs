@@ -146,6 +146,7 @@ impl Display for QueryString {
     }
 }
 
+/// Contains arbitrary form data in a serialized form.
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct FormDataSerialized(HashMap<QueryString, String>);
 

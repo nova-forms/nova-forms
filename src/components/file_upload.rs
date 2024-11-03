@@ -77,6 +77,7 @@ pub fn FileUpload(
     }
 }
 
+/// A unique identifier for a file.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct FileId(Uuid);
 
@@ -118,6 +119,7 @@ impl<'de> Deserialize<'de> for FileId {
     }
 }
 
+/// Contains information about a file, but not the file contents itself.
 #[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct FileInfo {
     file_name: String,

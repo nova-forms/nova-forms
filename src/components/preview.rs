@@ -12,7 +12,7 @@ pub fn start_preview(form_id: &str) {
             startPreview("{}", "{}");
         "#,
         form_id,
-        base_context.resolve_path("/print.css")
+        base_context.resolve_path("print.css")
     )).ok();
 }
 

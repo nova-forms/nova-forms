@@ -16,6 +16,8 @@ const EMAIL_REGEX: LazyCell<Regex> =
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Serialize)]
 pub struct Telephone(String);
 
+/// The error type for the `Telephone` datatype.
+/// This error is returned when the input is not a valid telephone number and can be used to display an error message by providing a custom translation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum TelephoneError {
     #[error("invalid format")]

@@ -1,6 +1,6 @@
 use leptos::IntoView;
 use std::{
-    path::{Path, PathBuf},
+    path::PathBuf,
     process::{ExitStatus, Stdio},
     sync::Arc,
 };
@@ -84,34 +84,7 @@ impl PdfGen {
         use leptos::*;
         use leptos_meta::*;
         use std::sync::{Arc, OnceLock};
-        /* 
-        let conf = get_configuration(None).await.unwrap();
-        let pkg_dir = conf.leptos_options.site_pkg_dir; 
-        let site_root = conf.leptos_options.site_root;
-        let output_name = conf.leptos_options.output_name;
         
-        let print_css_path = format!("{}/print.css", site_root);
-        let print_css_path = Path::new(&print_css_path);
-        let style_css_path = format!("{}/{}/{}.css", site_root, pkg_dir, output_name);
-        let style_css_path = Path::new(&style_css_path);
-
-        let styles = [
-            &style_css_path,
-            &print_css_path,
-        ];
-
-        let base_path = std::env::current_dir().unwrap();
-        let mut style = String::new();
-
-        for relative_path in styles {
-            let mut css_path = base_path.clone();
-            css_path.push(relative_path);
-            let contents = tokio::fs::read_to_string(css_path).await?;
-            style.push_str(&contents);
-            style.push_str("\n");
-        }
-        */
-
         let site_root = self.site_root.clone();
         let head_metadata = Arc::new(OnceLock::new());
         

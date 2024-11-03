@@ -16,6 +16,8 @@ const EMAIL_REGEX: LazyCell<Regex> =
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Serialize)]
 pub struct Email(String);
 
+/// The error type for the `Email` datatype.
+/// This error is returned when the input is not a valid email address and can be used to display an error message by providing a custom translation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Error)]
 pub enum EmailError {
     #[error("invalid format")]
