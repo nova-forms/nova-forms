@@ -11,10 +11,14 @@ pub fn Radio<T>(
     #[prop(into)] label: TextProp,
     /// The query string that binds the input field to the form data.
     #[prop(into)] bind: QueryString,
-    /// The placeholder text of the input field.
+    /// A debug value that is used to autofill the input field in debug mode.
     #[prop(optional, into)] debug_value: Option<T>,
     /// The initial value of the input field.
     #[prop(optional, into)] value: MaybeProp<T>,
+    /// A write signal that is updated with the parsed value of the input field.
+    #[prop(optional, into)] sync: Option<WriteSignal<T>>,
+    /// Set a custom error message for the input field.
+    #[prop(optional, into)] error: MaybeProp<TextProp>,
 ) -> impl IntoView
 where
     T: IntoEnumIterator + FromStr<Err = ParseError> + Into<&'static str> + Clone + Copy + Default + Eq + Hash + Display + 'static
@@ -58,7 +62,12 @@ where
     let qs_clone = qs.clone();
     create_effect(move |_| {
         let qs = qs_clone.clone();
-        nova_form_context.set_error(&qs, parsed_value.get().is_err());
+        match parsed_value.get() {
+            Err(_err) => nova_form_context.set_error(&qs, true),
+            Ok(value) => if let Some(sync) = sync {
+                sync.set(value);
+            }
+        }
     });
 
     /*let input_elem = html::input()
@@ -103,6 +112,10 @@ where
                     }}
                 />
                 {move || {
+                    if let Some(error) = error.get() {
+                        view! { <span class="error-message">{error}</span> }
+                            .into_view()
+                    } else
                     if let (Err(err), true) = (
                         parsed_value.get(),
                         show_error.get(),

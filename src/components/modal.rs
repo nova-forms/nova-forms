@@ -1,4 +1,5 @@
 use leptos::*;
+use leptos_meta::Body;
 
 use crate::Button;
 
@@ -20,6 +21,7 @@ pub fn Modal(
 ) -> impl IntoView {
     view! {
         <Show when=move || open.get()>
+            <Body attr:inert=move || open.get() />
             <div class="modal">
                 <dialog
                     open=open.get()

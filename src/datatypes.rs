@@ -23,6 +23,7 @@ use std::fmt::{Debug, Display};
 use std::rc::Rc;
 use std::str::FromStr;
 
+/// A datatype that represents an optional value.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub struct Optional<T>(Option<T>);
 

@@ -78,9 +78,14 @@ pub fn Input<T>(
     #[prop(into)] bind: QueryString,
     /// The placeholder text of the input field.
     #[prop(optional, into)] placeholder: Option<T>,
+    /// A debug value that is used to autofill the input field in debug mode.
     #[prop(optional, into)] debug_value: Option<T>,
     /// The initial value of the input field.
     #[prop(optional, into)] value: MaybeProp<T>,
+    /// A write signal that is updated with the parsed value of the input field.
+    #[prop(optional, into)] sync: Option<WriteSignal<T>>,
+    /// Set a custom error message for the input field.
+    #[prop(optional, into)] error: MaybeProp<TextProp>,
 ) -> impl IntoView
 where
     T: Datatype,
@@ -123,14 +128,22 @@ where
     let qs_clone = qs.clone();
     create_effect(move |_| {
         let qs = qs_clone.clone();
-        nova_form_context.set_error(&qs, parsed_value.get().is_err());
+        match parsed_value.get() {
+            Err(_err) => nova_form_context.set_error(&qs, true),
+            Ok(value) => if let Some(sync) = sync {
+                sync.set(value);
+            }
+        }
     });
+
+    let error_clone = error.clone();
+    let error_clone2 = error.clone();
 
     view! {
         <div
             class="field"
-            class:error=move || parsed_value.get().is_err() && show_error.get()
-            class:ok=move || parsed_value.get().is_ok() && show_error.get()
+            class:error=move || (parsed_value.get().is_err() || error_clone.get().is_some()) && show_error.get()
+            class:ok=move || (parsed_value.get().is_ok() && error_clone2.get().is_none()) && show_error.get()
         >
             <label for=qs.to_string()>{label}</label>
             {move || {
@@ -163,6 +176,10 @@ where
                 }
             }}
             {move || {
+                if let Some(error) = error.get() {
+                    view! { <span class="error-message">{error}</span> }
+                        .into_view()
+                } else
                 if let (Err(err), true) = (
                     parsed_value.get(),
                     show_error.get(),
