@@ -35,5 +35,5 @@ pub use radio::*;
 pub use dialog::*;
 pub use cols::*;
 pub use print::*;
-pub(crate) use toolbar::*;
-pub(crate) use preview::*;
+pub use toolbar::*;
+pub use preview::*;

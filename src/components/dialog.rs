@@ -39,32 +39,31 @@ pub fn Dialog(
 ) -> impl IntoView {
     view! {
         <Show when=move || open.get()>
-            <div class="dialog">
-                <dialog
-                    open=open.get()
-                    class=kind.class()
-                >
-                    <div class="dialog-header">{
-                        let title = title.clone();
-                        move || title.clone()
-                    }</div>
-                    <div class="dialog-main">{
-                        let msg = msg.clone();
-                        move || msg.clone()
-                    }</div>
-                    {
-                        if let Some(close) = close {
-                            view! {
-                                <div class="dialog-footer">
-                                    <Button icon="close" label="Close" on:click=move |_ev| close.call(()) />
-                                </div>
-                            }.into_view()
-                        } else {
-                            View::default()
-                        }
+            <dialog 
+                open=open.get()
+                class=format!("dialog {}", kind.class())
+                tabindex="-1"
+            >
+                <div class="dialog-header">{
+                    let title = title.clone();
+                    move || title.clone()
+                }</div>
+                <div class="dialog-main">{
+                    let msg = msg.clone();
+                    move || msg.clone()
+                }</div>
+                {
+                    if let Some(close) = close {
+                        view! {
+                            <div class="dialog-footer">
+                                <Button icon="close" label="Close" on:click=move |_ev| close.call(()) />
+                            </div>
+                        }.into_view()
+                    } else {
+                        View::default()
                     }
-                </dialog>
-            </div>
+                }
+            </dialog>
         </Show>
     }
 }

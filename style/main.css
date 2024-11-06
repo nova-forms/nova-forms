@@ -1,0 +1,591 @@
+/*@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');*/
+@import url('https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap');
+
+/* ====================
+ * GENERAL
+ * ====================
+ *
+ * General styles that apply to the whole document.
+ */
+body {
+	font-family: var(--text-font);
+	background: var(--background);
+	color: var(--text);
+	margin: 0;
+	font-size: var(--text-font-size);
+}
+
+.content {
+	margin: auto;
+	padding-left: var(--general-padding);
+	padding-right: var(--general-padding);
+	max-width: var(--page-width);
+}
+
+h1, h2, h3, h4, h5, h6, #title {
+	font-family: var(--heading-font);
+}
+
+p {
+	line-height: var(--general-line-height);
+}
+
+/* Google icons */
+.material-symbols-rounded {
+	display: inline-block;
+	width: var(--icon-width);
+	height: var(--icon-height);
+}
+
+/* Accessible screen reader hiding for inputs */
+.sr-hidden {
+	position: absolute !important;
+	width: 0 !important;
+	height: 0 !important;
+	padding: 0 !important;
+	margin: 0 !important;
+	overflow: hidden !important;
+}
+
+.print-only {
+	display: none !important;
+}
+
+
+/* ====================
+ * OVERLAY
+ * ====================
+ *
+ * Everything that is not part of the printed form is considered an overlay.
+ * This includes the header, footer, toolbar, the preview, overlay buttons etc.
+ */
+
+/* --------------------
+ * Nova Forms Wrapper
+ * --------------------
+ * 
+ * The main container for the whole application.
+ */
+main, header, footer {
+    padding-top: var(--general-padding);
+    padding-bottom: var(--general-padding);
+}
+
+header {
+	background: var(--header-background);
+	color: var(--header-text-color);
+}
+
+main {
+    background: var(--main-background);
+    color: var(--main-text-color);
+}
+
+footer {
+    background: var(--footer-background);
+    color: var(--footer-text-color);
+}
+
+footer > .content {
+	text-align: center;
+}
+
+header > .content {
+	display: flex;
+	justify-content: left;
+	align-items: center;
+	position: sticky;
+	top: 0;
+	z-index: 1000;
+}
+
+#logo {
+	height: 48px;
+	margin-right: var(--general-padding);
+}
+ 
+#title {
+	font-weight: bold;
+	font-size: 24px;
+}
+
+
+/* --------------------
+ * Overlay Buttons
+ * --------------------
+ * 
+ * Buttons that are not rendered in the printed form.
+ */
+.button-group {
+	display: inline-flex;
+	gap: var(--button-group-gap);
+	margin-top: var(--component-vertical-margin);
+	margin-bottom: var(--component-vertical-margin);
+}
+
+input[type=submit],
+input[type=button],
+button,
+.button {
+	border: none;
+	background: var(--button-background);
+	padding: var(--button-padding);
+	color: var(--text);
+	border-radius: var(--button-border-radius);
+	cursor: pointer;
+	display: inline-block;
+	box-sizing: border-box;
+	transition: all var(--component-transition-duration);
+	font-size: var(--text-font-size);
+}
+
+input[type=submit]:hover,
+input[type=button]:hover,
+button:hover,
+.button:hover,
+.button:has(input:hover),
+.button:has(select:hover) {
+	outline: var(--button-outline-hover);
+	box-shadow: var(--button-shadow-hover);
+	background: var(--button-background-hover);
+}
+
+input[type=submit]:focus,
+input[type=button]:focus,
+button:focus,
+.button:focus,
+.button:has(input:focus),
+.button:has(select:focus) {
+	outline: var(--field-outline-focus);
+	box-shadow: var(--field-shadow-focus);
+	background: var(--button-background-focus);
+}
+
+input[type=submit]:disabled,
+input[type=button]:disabled,
+button:disabled,
+.button:disabled,
+.button:has(input:disabled),
+.button:has(select:disabled) {
+	cursor: not-allowed;
+	background: var(--button-background-disabled);
+	border: var(--button-border-disabled);
+}
+
+.icon-button, .icon-select {
+	display: inline-flex;
+	align-items: center;
+	height: var(--icon-height);
+	box-sizing: content-box;
+}
+
+.icon-button {
+	justify-content: center;
+	width: var(--icon-width);
+}
+
+.icon-select select {
+	position: absolute;
+	width: 0;
+	height: 0;
+	padding: 0;
+	margin: 0;
+	border: none;
+	background: none;
+	font-weight: bold;
+	outline: none;
+	color: var(--text);
+	background: var(--field-background);
+	cursor: pointer;
+}
+
+.icon-select select:focus {
+	position: static;
+	width: auto;
+	height: auto;
+	padding-left: 8px;
+}
+
+/* -------------------
+ * Stepper
+ * -------------------
+ * 
+ * The Stepper
+ */
+.stepper {
+	position: sticky;
+	bottom: 0;
+}
+
+.stepper .button-group {
+	display: flex;
+}
+
+.stepper .stepper-spacer {
+	flex-grow: 1;
+	flex-shrink: 1;
+}
+
+/* -------------------
+ * Toolbar
+ * -------------------
+ * 
+ * The Nova Forms Toolbar
+ */
+#toolbar {
+	position: sticky;
+	bottom: 0;
+	display: block;
+	text-align: right;
+	box-sizing: border-box;
+}
+
+/* -------------------
+ * Modals
+ * -------------------
+ */
+.modal-background {
+	position: fixed;
+	top: 0;
+	left: 0;
+	z-index: 10000;
+	width: 100vw;
+	height: 100vh;
+	display: flex;
+	justify-items: center;
+	align-items: center;
+	background: rgba(0, 0, 0, 0.2);
+	backdrop-filter: blur(8px);
+}
+
+dialog.modal,
+dialog.dialog {
+	border: none;
+	margin: auto;
+	position: static;
+	padding: 0;
+	width: 100%;
+	background: var(--background);
+	color: var(--text);
+	border-radius: var(--field-border-radius);
+	padding: var(--general-padding);
+	box-sizing: border-box;
+}
+
+dialog.modal {
+	max-width: 256px;
+}
+
+.modal .modal-header,
+.dialog .dialog-header {
+	font-weight: bold;
+	background: none;
+	border-top-left-radius: var(--field-border-radius);
+	border-top-right-radius: var(--field-border-radius);
+	margin-bottom: var(--component-vertical-margin);
+}
+
+.modal .modal-footer,
+.dialog .dialog-footer {
+	border-bottom-left-radius: var(--field-border-radius);
+	border-bottom-right-radius: var(--field-border-radius);
+	margin-top: var(--component-vertical-margin);
+}
+
+.dialog {
+	margin-top: var(--component-vertical-margin);
+	margin-bottom: var(--component-vertical-margin);
+}
+
+dialog.modal.info,
+dialog.dialog.info {
+	background: var(--info);
+}
+
+dialog.modal.success,
+dialog.dialog.success {
+	background: var(--success);
+}
+
+dialog.modal.warn,
+dialog.dialog.warn {
+	background: var(--warning);
+}
+
+dialog.modal.error,
+dialog.dialog.error {
+	background: var(--danger);
+}
+
+/* ====================
+ * FORM
+ * ====================
+ *
+ * Everything that is part of the form
+ * and will be rendered in the printed document.
+ */
+
+/* -------------------
+ * Fieldsets
+ * -------------------
+ */
+fieldset {
+	border: none;
+	margin-top: var(--component-vertical-margin);
+	margin-bottom: var(--component-vertical-margin);
+	padding: 0;
+	page-break-inside: avoid;
+}
+
+/* -------------------
+ * Input Fields
+ * -------------------
+ */
+.field {
+	margin-top: var(--component-vertical-margin);
+	margin-bottom: var(--component-vertical-margin);
+}
+
+.field label {
+	display: inline-block;
+	margin-bottom: var(--field-label-margin-bottom);
+}
+
+.field input,
+.field select,
+.field textarea {
+	padding: var(--field-padding);
+	border-radius: var(--field-border-radius);
+	width: 100%;
+	box-sizing: border-box;
+	border: var(--field-border);
+	background: var(--field-background);
+	font-family: var(--input-font);
+	color: var(--text);
+	font-size: var(--input-font-size);
+	transition: all var(--component-transition-duration);
+}
+
+.field input:hover,
+.field select:hover,
+.field textarea:hover {
+	box-shadow: var(--field-shadow-hover);
+	outline: var(--field-outline-hover);
+	background: var(--field-background-hover);
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+	box-shadow: var(--field-shadow-focus);
+	outline: var(--field-outline-focus);
+	background: var(--field-background-focus);
+}
+
+.field.error input,
+.field.error select,
+.field.error textarea {
+	border: var(--field-border-error);
+	background: var(--field-background-error);
+}
+
+.field.ok input,
+.field.ok select,
+.field.ok textarea {
+	border: var(--field-border-ok);
+	background: var(--field-background-ok);
+}
+
+.field input:disabled,
+.field select:disabled,
+.field textarea:disabled {
+	border: var(--field-border-disabled);
+	background: var(--field-background-disabled);
+	cursor: not-allowed;
+}
+
+.field .error-message {
+	color: var(--danger);
+}
+
+/* -------------------
+ * Checkboxes and Radio
+ * -------------------
+ */
+.field.checkbox input[type=checkbox],
+.field.radio input[type=radio] {
+	width: auto;
+	margin-right: 8px;
+
+	/* Custom */
+	position: absolute !important;
+	width: 0 !important;
+	height: 0 !important;
+	padding: 0 !important;
+	margin: 0 !important;
+	overflow: hidden !important;
+	border: none !important;
+	outline: none !important;
+	box-shadow: none !important;
+	z-index: -10000 !important;		
+}
+
+.field.checkbox input[type=checkbox]:focus,
+.field.radio input[type=radio]:focus {
+	outline: none;
+}
+
+.field.checkbox label,
+.field.radio label {
+	display: inline-flex;
+	align-items: center;
+	width: 100%;
+	margin: 0;
+}
+
+/* Custom */
+.field.checkbox .custom-checkbox,
+.field.radio .custom-radio {
+	display: inline-block;
+	width: 16px;
+	height: 16px;
+	background: var(--field-background);
+    border: var(--field-border);
+	position: relative;
+	cursor: pointer;
+	transition: all var(--component-transition-duration);
+	margin-right: 8px;
+}
+
+.field.radio input:hover ~ .custom-radio,
+.field.checkbox input:hover ~ .custom-checkbox {
+	outline: var(--field-outline-hover);
+	box-shadow: var(--field-shadow-hover);
+	background: var(--field-background-hover);
+}
+
+.field.radio input:focus ~ .custom-radio,
+.field.checkbox input:focus ~ .custom-checkbox {
+	outline: var(--field-outline-focus);
+	box-shadow: var(--field-shadow-focus);
+	background: var(--field-background-focus);
+}
+
+.field.checkbox.ok input ~ .custom-checkbox,
+.field.radio.ok input ~ .custom-radio {
+	background: var(--field-background-ok);
+	border: var(--field-border-ok)
+}
+
+.field.checkbox.error input ~ .custom-checkbox,
+.field.radio.error input ~ .custom-radio {
+	background: var(--field-background-error);
+	border: var(--field-border-error);
+}
+
+.field.radio input:disabled ~ .custom-radio,
+.field.checkbox input:disabled ~ .custom-checkbox {
+	border: var(--field-border-disabled);
+	background: var(--field-background-disabled);
+}
+
+.field.radio input ~ .custom-radio::after,
+.field.checkbox input ~ .custom-checkbox::after {
+	content: "";
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	width: 0;
+	height: 0;
+	background: transparent;
+	transition: all var(--component-transition-duration);
+}
+
+.field.radio input:checked ~ .custom-radio::after,
+.field.checkbox input:checked ~ .custom-checkbox::after {
+	content: "";
+	position: absolute;
+	top: 25%;
+	left: 25%;
+	width: 50%;
+	height: 50%;
+	background: var(--text);
+}
+
+.field.radio .custom-radio,
+.field.radio .custom-radio::after {
+	border-radius: 50%;
+}
+
+.field.checkbox .custom-checkbox,
+.field.checkbox .custom-checkbox::after {
+	border-radius: 20%;
+}
+
+/* -------------------
+ * Grid
+ * -------------------
+ */
+.cols {
+	display: grid;
+	column-gap: var(--column-gap);
+	row-gap: var(--component-vertical-margin);
+	margin-top: var(--component-vertical-margin);
+	margin-bottom: var(--component-vertical-margin);
+}
+
+.cols .field {
+	margin-top: 0;
+	margin-bottom: 0;
+}
+
+
+/* --------------------
+  * Preview
+  * -------------------
+  */
+form, #preview {
+	box-sizing: border-box;
+	width: 100%;
+	border: none;
+	display: block;
+}
+
+#preview .pagedjs_page {
+	background: white;
+	margin-top: var(--general-padding);
+	margin-bottom: var(--general-padding);
+}
+
+#preview .pagedjs_page:first-of-type {
+	margin-top: 0;
+}
+
+#preview .pagedjs_page:last-of-type {
+	margin-bottom: 0;
+}
+
+.hidden {
+	display: none !important;
+}
+
+main:has(#preview-wrapper.visible) {
+    background: var(--preview-background);
+    color: var(--preview-text-color);
+}
+
+/* ====================
+ * Mobile Layout
+ * ====================
+ *
+ * Needs to be important, otherwise it won't apply when switching from preview back to edit mode.
+ */
+ @media only screen and (max-width: 210mm) {
+	form .cols > * {
+		grid-column: 1 / -1 !important;
+	}
+
+	.stepper .stepper-page-number {
+		display: none;
+	}
+}

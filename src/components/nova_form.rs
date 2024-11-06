@@ -1,6 +1,7 @@
 use ev::SubmitEvent;
 use leptos::*;
 use leptos_i18n::*;
+use leptos_meta::Style;
 use leptos_router::*;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use server_fn::{
@@ -13,7 +14,7 @@ use std::{fmt::Debug, marker::PhantomData, path::{Path, PathBuf}, str::FromStr};
 use thiserror::Error;
 
 use crate::{
-    local_utc_offset, use_translation, DialogKind, FormDataSerialized, InputsContext, Modal, PagesContext, Preview, QueryString, Toolbar, ToolbarLocaleSelect, ToolbarPageSelect, ToolbarPreviewButton, ToolbarSubmitButton
+    local_utc_offset, use_translation, DialogKind, FormDataSerialized, InputsContext, Modal, PagesContext, QueryString
 };
 
 use super::{InputData, PageContext};
@@ -344,6 +345,9 @@ where
         }
     };
     view! {
+        <Style>{VARIABLES_CSS}</Style>
+        <Style>{MAIN_CSS}</Style>
+
         <form
             id=form_id.as_str()
             novalidate
@@ -366,17 +370,9 @@ where
             />
         </form> 
 
-        <Preview/>
-
-        <Toolbar>
-            <ToolbarPageSelect />
-            <ToolbarLocaleSelect i18n=i18n />
-            <ToolbarPreviewButton />
-            <ToolbarSubmitButton />
-        </Toolbar>
-
-        
+    
         <Modal
+            id="submit-pending"
             open=Signal::derive(move || matches!(submit_state.get(), SubmitState::Pending))
             kind=DialogKind::Info
             title={use_translation(Translation::Submit)}
@@ -384,6 +380,7 @@ where
         />
 
         <Modal
+            id="submit-error"
             open=Signal::derive(move || matches!(submit_state.get(), SubmitState::Error(_)))
             kind=DialogKind::Error
             title={use_translation(Translation::Submit)}
@@ -392,6 +389,7 @@ where
         />
     
         <Modal
+            id="submit-success"
             open=Signal::derive(move || matches!(submit_state.get(), SubmitState::Success))
             kind=DialogKind::Success
             title={use_translation(Translation::Submit)}
@@ -411,6 +409,9 @@ pub struct MetaData {
     pub locale: String,
     pub local_utc_offset: UtcOffset,
 }
+
+const MAIN_CSS: &str = include_str!("../../style/main.css");
+const VARIABLES_CSS: &str = include_str!("../../style/variables.css");
 
 #[macro_export]
 macro_rules! init_nova_forms {
@@ -440,9 +441,6 @@ macro_rules! init_nova_forms {
             provide_context(base_context.clone());
 
             view! {
-                // Injects a stylesheet into the document <head>.
-                // id=leptos means cargo-leptos will hot-reload this stylesheet.
-                <Stylesheet id="leptos" href=base_context.resolve_path("pkg/app.css") />
                 <Link
                     rel="stylesheet"
                     href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0"
@@ -455,6 +453,10 @@ macro_rules! init_nova_forms {
                         }
                     }
                 </I18nContextProvider>
+
+                // Injects a stylesheet into the document <head>.
+                // id=leptos means cargo-leptos will hot-reload this stylesheet.
+                <Stylesheet id="leptos" href=base_context.resolve_path("pkg/app.css") />
             }
         }
 
