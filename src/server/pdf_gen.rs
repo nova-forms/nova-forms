@@ -92,11 +92,7 @@ impl PdfGen {
         let html = leptos::ssr::render_to_string(move || {
             provide_context(SiteRoot::from(site_root));
 
-            let view = view! {
-                <div id="print">
-                    {form()}
-                </div>
-            };
+            let view = form();
 
             head_metadata_clone.set(generate_head_metadata()).unwrap();
 

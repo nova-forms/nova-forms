@@ -7,18 +7,18 @@
 
 /* Default values */
 :root {
-	/* Color Pallette */
-	--primary: white;
-	--secondary: black;
-	--danger: red;
-	--warning: orange;
-	--success: green;
-	--info: blue;
-	--text: black;
-	--disabled: gray;
-	--background: white;
+    /* Color Pallette */
+    --primary: white;
+    --secondary: black;
+    --danger: red;
+    --warning: orange;
+    --success: green;
+    --info: blue;
+    --text: black;
+    --disabled: gray;
+    --background: white;
 
-	/* General Settings */
+    /* General Settings */
     --header-background: lightgray;
     --header-text-color: var(--text);
     --main-background: var(--background);
@@ -27,63 +27,63 @@
     --footer-text-color: var(--text);
     --preview-background: lightgray;
     --preview-text-color: var(--text);
-	--general-padding: 16px;
-	--general-line-height: 1.5;
+    --general-padding: 16px;
+    --general-line-height: 1.5;
 
-	/* General Component Settings */
-	--component-vertical-margin: 1em;
-	--component-transition-duration: 0.2s;
+    /* General Component Settings */
+    --component-vertical-margin: 1em;
+    --component-transition-duration: 0.2s;
 
-	/* Grid Settings */
-	--column-gap: calc(var(--general-padding) * 2);
+    /* Grid Settings */
+    --column-gap: calc(var(--general-padding) * 2);
 
-	/* Fonts */
-	--text-font: sans-serif;
-	--heading-font: var(--text-font);
-	--input-font: var(--text-font);
-	--text-font-size: 16px;
-	--input-font-size: var(--text-font-size);
+    /* Fonts */
+    --text-font: sans-serif;
+    --heading-font: var(--text-font);
+    --input-font: var(--text-font);
+    --text-font-size: 16px;
+    --input-font-size: var(--text-font-size);
 
-	/* Page Settings */
-	--page-margin: 2cm;
-	--page-layout: A4;
-	--page-width: 210mm;
-	--page-height: 297mm;
-	
-	/* Field Settings */
-	--field-padding: 8px;
-	--field-border-radius: var(--field-padding);
-	--field-label-margin-bottom: 2px;
+    /* Page Settings */
+    --page-margin: 2cm;
+    --page-layout: A4;
+    --page-width: 210mm;
+    --page-height: 297mm;
+    
+    /* Field Settings */
+    --field-padding: 8px;
+    --field-border-radius: var(--field-padding);
+    --field-label-margin-bottom: 2px;
 
-	--field-background: none;
-	--field-background-ok: var(--field-background);
-	--field-background-error: var(--field-background);
-	--field-background-hover: var(--field-background);
-	--field-background-focus: var(--field-background);
-	--field-background-disabled: var(--disabled);
-	--field-border: 1px solid var(--text);
-	--field-border-ok: 1px solid var(--success);
-	--field-border-error: 1px solid var(--danger);
-	--field-border-disabled: 1px solid var(--disabled);
-	--field-outline-hover: none;
-	--field-outline-focus: 1px solid var(--primary);
-	--field-shadow-hover: none;
-	--field-shadow-focus: none;
+    --field-background: none;
+    --field-background-ok: var(--field-background);
+    --field-background-error: var(--field-background);
+    --field-background-hover: var(--field-background);
+    --field-background-focus: var(--field-background);
+    --field-background-disabled: var(--disabled);
+    --field-border: 1px solid var(--text);
+    --field-border-ok: 1px solid var(--success);
+    --field-border-error: 1px solid var(--danger);
+    --field-border-disabled: 1px solid var(--disabled);
+    --field-outline-hover: none;
+    --field-outline-focus: 1px solid var(--primary);
+    --field-shadow-hover: none;
+    --field-shadow-focus: none;
 
-	/* Button Settings */
-	--button-group-gap: calc(var(--general-padding) / 2);
-	--icon-width: 24px;
-	--icon-height: 24px;
-	--button-padding: var(--field-padding);
-	--button-border-radius: var(--field-border-radius);
-	--button-background: var(--field-background);
-	--button-background-hover: var(--field-background-hover);
-	--button-background-focus: var(--field-background-focus);
-	--button-background-disabled: var(--field-background-disabled);
-	--button-border: var(--field-border);
-	--button-border-disabled: var(--field-border-disabled);
-	--button-outline-hover: var(--field-outline-hover);
-	--button-outline-focus: var(--field-outline-focus);
-	--button-shadow-hover: var(--field-shadow-hover);
-	--button-shadow-focus: var(--field-shadow-focus);
+    /* Button Settings */
+    --button-group-gap: calc(var(--general-padding) / 2);
+    --icon-width: 24px;
+    --icon-height: 24px;
+    --button-padding: var(--field-padding);
+    --button-border-radius: var(--field-border-radius);
+    --button-background: var(--field-background);
+    --button-background-hover: var(--field-background-hover);
+    --button-background-focus: var(--field-background-focus);
+    --button-background-disabled: var(--field-background-disabled);
+    --button-border: var(--field-border);
+    --button-border-disabled: var(--field-border-disabled);
+    --button-outline-hover: var(--field-outline-hover);
+    --button-outline-focus: var(--field-outline-focus);
+    --button-shadow-hover: var(--field-shadow-hover);
+    --button-shadow-focus: var(--field-shadow-focus);
 }

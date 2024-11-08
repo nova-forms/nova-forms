@@ -14,7 +14,7 @@ use std::{fmt::Debug, marker::PhantomData, path::{Path, PathBuf}, str::FromStr};
 use thiserror::Error;
 
 use crate::{
-    local_utc_offset, use_translation, DialogKind, FormDataSerialized, InputsContext, Modal, PagesContext, QueryString
+    local_utc_offset, use_translation, DialogKind, FormDataSerialized, InputsContext, Modal, PagesContext, QueryString, APP_CSS, PRINT_CSS, VARIABLES_CSS
 };
 
 use super::{InputData, PageContext};
@@ -346,7 +346,12 @@ where
     };
     view! {
         <Style>{VARIABLES_CSS}</Style>
-        <Style>{MAIN_CSS}</Style>
+        <Style>{APP_CSS}</Style>
+        {if use_context::<RenderContext>().is_some() {
+            view! { <Style>{PRINT_CSS}</Style> }.into_view()
+        } else {
+            View::default()
+        }}
 
         <form
             id=form_id.as_str()
@@ -410,9 +415,6 @@ pub struct MetaData {
     pub local_utc_offset: UtcOffset,
 }
 
-const MAIN_CSS: &str = include_str!("../../style/main.css");
-const VARIABLES_CSS: &str = include_str!("../../style/variables.css");
-
 #[macro_export]
 macro_rules! init_nova_forms {
     ($($base_url:literal)?) => {
@@ -434,8 +436,6 @@ macro_rules! init_nova_forms {
             #[allow(unused_mut)]
             let mut base_url = PathBuf::from("/");
             $(base_url = PathBuf::from($base_url);)?
-
-            leptos::logging::log!("base url is {:?}", base_url);
 
             let base_context = $crate::BaseContext::new(base_url.clone());
             provide_context(base_context.clone());
@@ -486,9 +486,9 @@ macro_rules! init_nova_forms {
                         let base_context = expect_context::<$crate::BaseContext>();
                       
                         view! {
-                            <Stylesheet href=base_context.resolve_path("print.css") />
-
                             {children()}
+
+                            <Stylesheet href=base_context.resolve_path("print.css") />
                         }
                     }
                 </BaseContextProvider>

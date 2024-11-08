@@ -1,0 +1,65 @@
+@page {
+	size: A4;
+	background: white;
+	color: black;
+	margin: var(--margin);
+
+	@bottom-left {
+		content: "Nova Forms";
+	}
+
+	@bottom-right {
+		content: counter(page) "/" counter(pages);
+	}
+}
+
+form {
+	padding: 0 !important;
+	background: white;
+	color: black;
+}
+
+input,
+select,
+textarea {
+	color: black;
+}
+
+input[type=submit],
+input[type=button],
+button,
+.button {
+	display: none !important;
+}
+
+.field input,
+.field select,
+.field textarea {
+	padding: 0;
+	margin: 0;
+	border: none !important;
+	background: none !important;
+	pointer-events: none;
+}
+
+.error-message {
+	display: none;
+}
+
+.screen-only {
+	display: none !important;
+}
+
+.print-only {
+	display: block !important;
+}
+
+.page.hidden {
+	display: block !important;
+}
+
+
+.dialog,
+.modal {
+	display: none;
+}

@@ -1,7 +1,7 @@
 use leptos::*;
 use leptos_meta::*;
 
-use crate::NovaFormContext;
+use crate::{NovaFormContext, PRINT_CSS};
 
 use super::BaseContext;
 
@@ -9,10 +9,11 @@ pub fn start_preview(form_id: &str) {
     let base_context = expect_context::<BaseContext>();
 
     js_sys::eval(&format!(r#"
-            startPreview("{}", "{}");
+            startPreview("{}", "{}", `@scope (#preview) {{ {} }}`);
         "#,
         form_id,
-        base_context.resolve_path("print.css")
+        base_context.resolve_path("print.css"),
+        PRINT_CSS
     )).ok();
 }
 
@@ -47,15 +48,16 @@ pub fn Preview() -> impl IntoView {
                 }
             }
 
-            async function startPreview(formId, printCss) {
+            async function startPreview(formId, printCss, baseCss) {
                 if (document.getElementById("preview-wrapper").classList.contains("visible")) {
+                    var url = URL.createObjectURL(new Blob([baseCss], {type: "text/css"}));
                     var preview = document.getElementById("preview");
                     preview.innerHTML = "";
                     var paged = new window.Paged.Previewer();
                     window.previewer = paged;
                     await paged.preview(
-                        '<div id="print">' + document.getElementById(formId).innerHTML + '</div>',
-                        [printCss],
+                        document.getElementById(formId).innerHTML,
+                        [printCss, url],
                         preview
                     );
                     resizePreview();
