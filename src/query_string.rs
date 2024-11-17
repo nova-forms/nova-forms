@@ -4,6 +4,8 @@ use leptos::*;
 use percent_encoding::{percent_decode, percent_encode, NON_ALPHANUMERIC};
 use serde::Serialize;
 
+/// A part of a query string.
+/// Either an index for arrays or a key to access a value.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum QueryStringPart {
     Index(usize),

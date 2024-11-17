@@ -265,8 +265,8 @@ dialog.modal {
 	max-width: 256px;
 }
 
-.modal .modal-header,
-.dialog .dialog-header {
+dialog.modal .modal-header,
+dialog.dialog .dialog-header {
 	font-weight: bold;
 	background: none;
 	border-top-left-radius: var(--field-border-radius);
@@ -274,14 +274,14 @@ dialog.modal {
 	margin-bottom: var(--component-vertical-margin);
 }
 
-.modal .modal-footer,
-.dialog .dialog-footer {
+dialog.modal .modal-footer,
+dialog.dialog .dialog-footer {
 	border-bottom-left-radius: var(--field-border-radius);
 	border-bottom-right-radius: var(--field-border-radius);
 	margin-top: var(--component-vertical-margin);
 }
 
-.dialog {
+dialog.dialog {
 	margin-top: var(--component-vertical-margin);
 	margin-bottom: var(--component-vertical-margin);
 }

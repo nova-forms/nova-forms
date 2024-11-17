@@ -67,7 +67,6 @@ mod context {
 
 pub(crate) use context::*;
 
-
 /// A component that renders an input field.
 /// It takes a datatype as a type parameter and automatically handles parsing and validation.
 #[component]
@@ -94,7 +93,15 @@ where
 
     let (input_value, set_input_value) = create_signal(None);
 
+    /*let node_ref = NodeRef::new();
+    node_ref.on_load(move |node| {
+        let element: &web_sys::HtmlInputElement = &*node;
+        set_input_value.set(Some(element.value()))
+    });*/
+
+    let string_label = label.get();
     let raw_value = Signal::derive(move || {
+        logging::log!("set raw value of {:?} to {:?}", string_label, value.get());
         if cfg!(debug_assertions) {
             input_value.get()
                 .unwrap_or_else(|| value.get()
@@ -166,8 +173,9 @@ where
                         .fold(html::input(), |el, (name, value)| el.attr(name, value))
                         .attr("id", qs.to_string())
                         .attr("name", qs.to_string())
-                        .attr("value", move || raw_value.get())
                         .attr("placeholder", placeholder.as_ref().map(T::to_string))
+                        .attr("value", move || raw_value.get())
+                        //.node_ref(node_ref)
                         .on(ev::input, move |ev| {
                             set_input_value.set(Some(event_target_value(&ev)));
                         });

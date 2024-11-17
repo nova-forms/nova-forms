@@ -24,6 +24,12 @@ where
 
     let (input_value, set_input_value) = create_signal(None);
 
+    /*let node_ref = NodeRef::new();
+    node_ref.on_load(move |node| {
+        let element: &web_sys::HtmlInputElement = &*node;
+        set_input_value.set(Some(element.checked()))
+    });*/
+
     let raw_value = Signal::derive(move || {
         if cfg!(debug_assertions) {
             input_value.get()
@@ -72,6 +78,7 @@ where
         .attr("name", qs.to_string())
         .attr("checked", move || raw_value.get())
         .attr("value", move || raw_value.get().to_string())
+        //.node_ref(node_ref)
         .on(ev::input, move |ev| {
             set_input_value.set(Some(event_target_checked(&ev)));
         });

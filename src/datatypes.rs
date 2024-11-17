@@ -162,7 +162,7 @@ macro_rules! impl_datatype {
 
 /// A trait for defining custom datatypes.
 /// Implemented on all types that can be used as a form input.
-pub trait Datatype: Clone + Display + FromStr<Err = Self::Error> + Into<Self::Inner> + 'static {
+pub trait Datatype: Clone + Display + Debug + FromStr<Err = Self::Error> + Into<Self::Inner> + 'static {
     type Inner: Datatype;
     type Error: From<<Self::Inner as Datatype>::Error> + Error + Clone + 'static;
 

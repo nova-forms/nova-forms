@@ -5,7 +5,7 @@ use leptos::*;
 /// Returns a tuple that contains a function which takes an input event, and a signal that contains the city name.
 /// The function taking an input event can be added to a input field and triggers the service call when the input field changes.
 /// The response of the service call is stored in the signal.
-pub fn use_zip_service() -> (WriteSignal<String>, Signal<Option<String>>) {
+pub fn use_zip_service() -> (Signal<Option<String>>, WriteSignal<String>) {
     let (zip, set_zip) = create_signal(String::new());
     let zip_service = create_server_action::<ZipService>();
     create_effect(move |_| {
@@ -20,7 +20,7 @@ pub fn use_zip_service() -> (WriteSignal<String>, Signal<Option<String>>) {
         }
     });
 
-    (set_zip, city.into())
+    (city.into(), set_zip)
 }
 
 #[server]

@@ -415,9 +415,10 @@ pub struct MetaData {
     pub local_utc_offset: UtcOffset,
 }
 
+/// Initializes the Nova Forms `BaseContextProvider` and `RenderContextProvider`.
 #[macro_export]
 macro_rules! init_nova_forms {
-    ($($base_url:literal)?) => {
+    ( $( $base_url:literal )? ) => {
         // Initializes the locales for the form.
         leptos_i18n::load_locales!();
         use i18n::*;
@@ -435,16 +436,12 @@ macro_rules! init_nova_forms {
 
             #[allow(unused_mut)]
             let mut base_url = PathBuf::from("/");
-            $(base_url = PathBuf::from($base_url);)?
+            $( base_url = PathBuf::from($base_url); )?
 
             let base_context = $crate::BaseContext::new(base_url.clone());
             provide_context(base_context.clone());
 
             view! {
-                <Link
-                    rel="stylesheet"
-                    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0"
-                />
 
                 <I18nContextProvider>
                     {
@@ -456,7 +453,18 @@ macro_rules! init_nova_forms {
 
                 // Injects a stylesheet into the document <head>.
                 // id=leptos means cargo-leptos will hot-reload this stylesheet.
+                // Preload the stylesheet to make sure it is loaded before the page is rendered.
+                <Link rel="preload" as_="style" href=base_context.resolve_path("pkg/app.css") />
+                <Link
+                    rel="preload"
+                    as_="style"
+                    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0"
+                />
                 <Stylesheet id="leptos" href=base_context.resolve_path("pkg/app.css") />
+                <Link
+                    rel="stylesheet"
+                    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0"
+                />
             }
         }
 
