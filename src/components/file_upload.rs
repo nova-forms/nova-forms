@@ -18,7 +18,7 @@ pub fn FileUpload(
     /// The query string to bind to a list of `FileId`s.
     #[prop(into)] bind: QueryString
 ) -> impl IntoView {
-    let (qs, _form_data) = bind.form_context();
+    let qs = bind.context();
 
     let (file_info, set_file_info) = create_signal(Vec::new());
 
@@ -63,7 +63,7 @@ pub fn FileUpload(
                 key=|(_, (file_id, _))| file_id.clone()
                 // renders each item to a view
                 children=move |(i, (file_id, file_info))| {
-                    let (qs, _file_name) = bind.clone().add_index(i).form_value::<String>();
+                    let qs = bind.clone().context().add_index(i);
 
                     view! {
                         <li>

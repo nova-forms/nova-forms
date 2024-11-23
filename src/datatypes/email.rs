@@ -13,7 +13,7 @@ const EMAIL_REGEX: LazyCell<Regex> =
     LazyCell::new(|| Regex::new(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$").unwrap());
 
 /// A datatype representing an email address.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 pub struct Email(String);
 
 /// The error type for the `Email` datatype.
@@ -45,8 +45,10 @@ impl Datatype for Email {
     fn attributes() -> Vec<(&'static str, leptos::Attribute)> {
         vec![("type", "email".into_attribute())]
     }
+}
 
-    fn default_debug_value() -> Self {
+impl Default for Email {
+    fn default() -> Self {
         Self::validate("test@example.com".into()).unwrap()
     }
 }

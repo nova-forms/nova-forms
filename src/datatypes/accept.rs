@@ -11,7 +11,7 @@ use super::Datatype;
 /// A datatype for checkboxes that require them to be true.
 /// This is useful for a checkbox that needs to be checked before submitting a form,
 /// for example a terms and conditions checkbox. 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 pub struct Accept(bool);
 
 /// The error type for the `Accept` datatype.
@@ -43,8 +43,10 @@ impl Datatype for Accept {
     fn attributes() -> Vec<(&'static str, leptos::Attribute)> {
         vec![("type", "checkbox".into_attribute())]
     }
+}
 
-    fn default_debug_value() -> Self {
+impl Default for Accept {
+    fn default() -> Self {
         Self::validate(true.into()).unwrap()
     }
 }

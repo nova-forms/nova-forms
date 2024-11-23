@@ -1,5 +1,5 @@
 use super::PageId;
-use crate::{use_translation, Datatype, NovaFormContext, QueryString};
+use crate::{Datatype, QueryString, FieldWiring};
 use leptos::*;
 
 mod context {
@@ -67,6 +67,7 @@ mod context {
 
 pub(crate) use context::*;
 
+
 /// A component that renders an input field.
 /// It takes a datatype as a type parameter and automatically handles parsing and validation.
 #[component]
@@ -77,110 +78,60 @@ pub fn Input<T>(
     #[prop(into)] bind: QueryString,
     /// The placeholder text of the input field.
     #[prop(optional, into)] placeholder: Option<T>,
-    /// A debug value that is used to autofill the input field in debug mode.
-    #[prop(optional, into)] debug_value: Option<T>,
     /// The initial value of the input field.
     #[prop(optional, into)] value: MaybeProp<T>,
     /// A write signal that is updated with the parsed value of the input field.
-    #[prop(optional, into)] sync: Option<WriteSignal<T>>,
+    #[prop(optional, into)] change: Option<Callback<Result<T, T::Error>, ()>>,
     /// Set a custom error message for the input field.
     #[prop(optional, into)] error: MaybeProp<TextProp>,
 ) -> impl IntoView
 where
     T: Datatype,
 {    
-    let (qs, form_value) = bind.form_value::<T>();
+    let FieldWiring {
+        qs,
+        node_ref,
+        raw_value,
+        error,
+        set_raw_value,
+        render_mode,
+        ..
+    } = FieldWiring::wire(label.clone(), bind, value, change, error);
 
-    let (input_value, set_input_value) = create_signal(None);
+    let text_elem = T::attributes()
+        .into_iter()
+        .filter(|(name, _)| *name != "type")
+        .fold(html::input(), |el, (name, value)| el.attr(name, value))
+        .attr("type", "text")
+        .attr("readonly", true)
+        .attr("id", qs.to_string())
+        .attr("name", qs.to_string())
+        .prop("value", move || raw_value.get());
 
-    /*let node_ref = NodeRef::new();
-    node_ref.on_load(move |node| {
-        let element: &web_sys::HtmlInputElement = &*node;
-        set_input_value.set(Some(element.value()))
-    });*/
-
-    let string_label = label.get();
-    let raw_value = Signal::derive(move || {
-        logging::log!("set raw value of {:?} to {:?}", string_label, value.get());
-        if cfg!(debug_assertions) {
-            input_value.get()
-                .unwrap_or_else(|| value.get()
-                    .or_else(|| form_value.clone().ok())
-                    .or_else(|| debug_value.clone())
-                    .unwrap_or_else(|| T::default_debug_value())
-                    .to_string())
-        } else {
-            input_value.get()
-                .unwrap_or_else(|| value.get()
-                    .or_else(|| form_value.clone().ok())
-                    .map(|v| v.to_string())
-                    .unwrap_or_default())
-        }
-    });
-
-    let nova_form_context = expect_context::<NovaFormContext>();
-    let validation_trigger = nova_form_context.register_input(qs.clone(), label.clone());
-
-    let show_error = Signal::derive(move || {
-        input_value.get().is_some() || validation_trigger.get()
-    });
-
-    let parsed_value = Signal::derive(move || T::from_str(&raw_value.get()));
-
-    let qs_clone = qs.clone();
-    on_cleanup(move || {
-        nova_form_context.deregister_input(qs_clone);
-    });
-
-    let qs_clone = qs.clone();
-    create_effect(move |_| {
-        let qs = qs_clone.clone();
-        match parsed_value.get() {
-            Err(_err) => nova_form_context.set_error(&qs, true),
-            Ok(value) => if let Some(sync) = sync {
-                sync.set(value);
-            }
-        }
-    });
-
-    let error_clone = error.clone();
-    let error_clone2 = error.clone();
+    let input_elem = T::attributes()
+        .into_iter()
+        .fold(html::input(), |el, (name, value)| el.attr(name, value))
+        .attr("id", qs.to_string())
+        .attr("name", qs.to_string())
+        .attr("placeholder", placeholder.as_ref().map(T::to_string))
+        .prop("value", move || raw_value.get())
+        .node_ref(node_ref)
+        .on(ev::input, move |ev| {
+            set_raw_value.call(event_target_value(&ev));
+        });
 
     view! {
         <div
             class="field"
-            class:error=move || (parsed_value.get().is_err() || error_clone.get().is_some()) && show_error.get()
-            class:ok=move || (parsed_value.get().is_ok() && error_clone2.get().is_none()) && show_error.get()
+            class:error=move || error.get().is_some()
+            class:ok=move || error.get().is_none()
         >
             <label for=qs.to_string()>{label}</label>
             {move || {
-
-                if nova_form_context.is_render_mode() {
-                    let text_elem = T::attributes()
-                        .into_iter()
-                        .filter(|(name, _)| *name != "type")
-                        .fold(html::input(), |el, (name, value)| el.attr(name, value))
-                        .attr("type", "text")
-                        .attr("readonly", true)
-                        .attr("id", qs.to_string())
-                        .attr("name", qs.to_string())
-                        .attr("value", move || raw_value.get());
-
-                    text_elem
+                if render_mode.get() {
+                    text_elem.clone()
                 } else {
-                    let input_elem = T::attributes()
-                        .into_iter()
-                        .fold(html::input(), |el, (name, value)| el.attr(name, value))
-                        .attr("id", qs.to_string())
-                        .attr("name", qs.to_string())
-                        .attr("placeholder", placeholder.as_ref().map(T::to_string))
-                        .attr("value", move || raw_value.get())
-                        //.node_ref(node_ref)
-                        .on(ev::input, move |ev| {
-                            set_input_value.set(Some(event_target_value(&ev)));
-                        });
-
-                    input_elem
+                    input_elem.clone()
                 }
             }}
             {move || {
@@ -188,12 +139,8 @@ where
                     view! { <span class="error-message">{error}</span> }
                         .into_view()
                 } else
-                if let (Err(err), true) = (
-                    parsed_value.get(),
-                    show_error.get(),
-                ) {
-                    view! { <span class="error-message">{use_translation(err)}</span> }
-                        .into_view()
+                if let Some(error) = error.get(){
+                    view! { <span class="error-message">{error}</span> }.into_view()
                 } else {
                     View::default()
                 }

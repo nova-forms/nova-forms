@@ -1,15 +1,14 @@
-use std::{collections::HashMap, fmt::Display, str::FromStr};
+use std::fmt::Display;
 
 use leptos::*;
-use percent_encoding::{percent_decode, percent_encode, NON_ALPHANUMERIC};
-use serde::Serialize;
+use ustr::Ustr;
 
 /// A part of a query string.
 /// Either an index for arrays or a key to access a value.
-#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum QueryStringPart {
     Index(usize),
-    Key(String),
+    Key(Ustr),
 }
 
 impl Display for QueryStringPart {
@@ -22,71 +21,85 @@ impl Display for QueryStringPart {
 }
 
 /// Used to bind a form input element to a form data element.
-#[derive(Clone, Debug, PartialEq, Eq, Hash, Default)]
-pub struct QueryString(Vec<QueryStringPart>);
+/// Note that `QueryString` supports a maximal depth of 16.
+/// Creating query strings consisting of more than 16 parts will panic.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
+pub struct QueryString {
+    parts: [Option<QueryStringPart>; 16],
+    len: usize,
+}
+
+impl FromIterator<QueryStringPart> for QueryString {
+    fn from_iter<T: IntoIterator<Item = QueryStringPart>>(iter: T) -> Self {
+        let mut qs = QueryString::default();
+        let mut len = 0;
+        for (i, part) in iter.into_iter().enumerate() {
+            qs.parts[i] = Some(part);
+            len += 1;
+        }
+        qs.len = len;
+        qs
+    }
+}
+
+impl<'a> FromIterator<&'a QueryStringPart> for QueryString {
+    fn from_iter<T: IntoIterator<Item = &'a QueryStringPart>>(iter: T) -> Self {
+        let mut qs = QueryString::default();
+        let mut len = 0;
+        for (i, part) in iter.into_iter().enumerate() {
+            qs.parts[i] = Some(*part);
+            len += 1;
+        }
+        qs.len = len;
+        qs
+    }
+}
 
 impl QueryString {
+    pub fn iter(&self) -> impl Iterator<Item = &QueryStringPart> {
+        self.parts.iter().flatten().fuse()
+    }
+
+    pub fn len(&self) -> usize {
+        self.iter().count()
+    }
+
     /// Checks whether the current query string extends the other query string.
-    /// 
-    /// ```rust
-    /// assert_eq!(QueryString::from("form_data[a][b]").extends(QueryString::from("form_data[a]")), Some(QueryString::from("b")));
-    /// ```
-    fn extends(&self, other: &Self) -> Option<QueryString> {
-        if self.0.len() < other.0.len() {
+    pub fn extends(&self, other: &Self) -> Option<QueryString> {
+        if self.len() < other.len() {
             return None;
         }
 
-        if !self.0.iter().zip(other.0.iter()).all(|(s, o)| s == o) {
+        if !self.iter().zip(other.iter()).all(|(s, o)| s == o) {
             return None;
         }
 
-        Some(QueryString(
-            self.0.iter().skip(other.0.len()).cloned().collect(),
-        ))
+        Some(self.iter().skip(other.len()).collect())
     }
 
-    /// Gets the `QueryString` and the serialized `FormData` for the current context.
-    pub fn form_context(&self) -> (QueryString, FormDataSerialized) {
-        let form_data = expect_context::<FormDataSerialized>();
-        let curr_form_data = form_data.level(&self);
+    pub fn context(&self) -> QueryString {
         let prefix_qs = expect_context::<QueryString>();
         let curr_qs = prefix_qs.join(self.clone());
-        (curr_qs, curr_form_data)
-    }
-
-    /// Gets the `QueryString` and the serialized value for the current context.
-    /// This is very similar to `form_context`, but it assumes that `FormData` only contains one value
-    /// which is deserializable into the type `T`.
-    pub fn form_value<T: FromStr>(&self) -> (QueryString, Result<T, <T as FromStr>::Err>) {
-        let form_data = expect_context::<FormDataSerialized>();
-        let value = T::from_str(&form_data
-            .exact(&self)
-            .unwrap_or_default());
-        let prefix_qs = expect_context::<QueryString>();
-        let curr_qs = prefix_qs.join(self.clone());
-        (curr_qs, value)
+        curr_qs
     }
 
     /// Joins two `QueryString`s.
-    pub fn join(self, mut other: Self) -> Self {
-        let mut parts = self.0;
-        parts.append(&mut other.0);
-        QueryString(parts)
+    pub fn join(self, other: Self) -> Self {
+        self.iter().chain(other.iter()).collect()
     }
 
     pub fn add(mut self, part: QueryStringPart) -> Self {
-        self.0.push(part);
+        self.parts[self.len] = Some(part);
+        self.len += 1;
         self
     }
 
-    pub fn add_index(mut self, index: usize) -> Self {
-        self.0.push(QueryStringPart::Index(index));
-        self
+    pub fn add_index(self, index: usize) -> Self {
+        self.add(QueryStringPart::Index(index))
     }
 
-    pub fn add_key<K: Into<String>>(mut self, key: K) -> Self {
-        self.0.push(QueryStringPart::Key(key.into()));
-        self
+    pub fn add_key<K: AsRef<str>>(self, key: K) -> Self {
+        self.add(QueryStringPart::Key(Ustr::from(key.as_ref())))
     }
 }
 
@@ -117,16 +130,15 @@ impl From<&str> for QueryString {
                 }
             }
         }
-        QueryString(
-            parts
-                .into_iter()
-                .map(|p| {
-                    p.parse::<usize>()
-                        .map(QueryStringPart::Index)
-                        .unwrap_or_else(|_| QueryStringPart::Key(p))
-                })
-                .collect(),
-        )
+
+        parts
+            .into_iter()
+            .map(|p| {
+                p.parse::<usize>()
+                    .map(QueryStringPart::Index)
+                    .unwrap_or_else(|_| QueryStringPart::Key(Ustr::from(&p)))
+            })
+            .collect()
     }
 }
 
@@ -138,97 +150,56 @@ impl From<String> for QueryString {
 
 impl Display for QueryString {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if let Some(first) = self.0.first() {
+        let mut iter = self.iter();
+        if let Some(first) = iter.next() {
             write!(f, "{}", first)?;
         }
-        for part in self.0.iter().skip(1) {
+        for part in iter {
             write!(f, "[{}]", part)?;
         }
         Ok(())
     }
 }
 
-/// Contains arbitrary form data in a serialized form.
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct FormDataSerialized(HashMap<QueryString, String>);
-
-impl FormDataSerialized {
-    pub fn from_form_data<F>(form_data: &F) -> Self
-    where
-        F: Serialize,
-    {
-        let serialized = serde_qs::to_string(form_data).expect("must be serializable");
-        FormDataSerialized::from_str(&serialized).unwrap()
-    }
+#[macro_export]
+macro_rules! qs {
+    ( $key:ident $($t:tt)* ) => {
+        qs!(@part($crate::QueryString::default().add_key(stringify!($key))) $($t)*)
+    };
+    ( @part($part:expr) [ $index:literal ] $($t:tt)* ) => {
+        qs!(@part(part.add_index($index)) $($t)*)
+    };
+    ( @part($part:expr) [ $key:ident ] $($t:tt)* ) => {
+        qs!(@part($part.add_key(stringify!($key))) $($t)*)
+    };
+    (@part($part:expr) ) => {
+        $part
+    };
 }
 
-impl FromStr for FormDataSerialized {
-    type Err = ();
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    fn from_str(s: &str) -> Result<Self, ()> {
-        let map = s
-            .split("&")
-            .into_iter()
-            .map(|pair| {
-                pair.split_once("=")
-                    .map(|(k, v)| {
-                        (
-                            QueryString::from(k),
-                            percent_decode(v.as_bytes()).decode_utf8_lossy().to_string(),
-                        )
-                    })
-                    .unwrap_or_else(|| (QueryString::from(pair), String::new()))
-            })
-            .collect();
-
-        Ok(FormDataSerialized(map))
-    }
-}
-
-impl ToString for FormDataSerialized {
-    fn to_string(&self) -> String {
-        self.0
-            .iter()
-            .map(|(k, v)| format!("{}={}", k, percent_encode(v.as_bytes(), NON_ALPHANUMERIC)))
-            .collect::<Vec<_>>()
-            .join("&")
-    }
-}
-
-impl FormDataSerialized {
-    pub fn exact(&self, key: &QueryString) -> Option<String> {
-        self.0.get(&key).map(|s| s.to_owned())
+    #[test]
+    fn test_extends() {
+        assert_eq!(QueryString::from("form_data[a][b]").extends(&QueryString::from("form_data[a]")), Some(QueryString::from("b")));
     }
 
-    pub fn level(&self, head: &QueryString) -> FormDataSerialized {
-        let map = self
-            .0
-            .iter()
-            .filter_map(|(k, v)| k.extends(head).map(|k| (k, v.to_owned())))
-            .collect();
-        FormDataSerialized(map)
+    #[test]
+    fn test_join() {
+        assert_eq!(QueryString::from("a").join(QueryString::from("b")), QueryString::from("a[b]"));
     }
 
-    pub fn len(&self) -> Option<usize> {
-        self.0
-            .keys()
-            .map(|k| {
-                k.0.first().and_then(|p| {
-                    if let QueryStringPart::Index(i) = p {
-                        Some(*i)
-                    } else {
-                        None
-                    }
-                })
-            })
-            .reduce(|l1, l2| {
-                if let (Some(l1), Some(l2)) = (l1, l2) {
-                    Some(l1.max(l2))
-                } else {
-                    None
-                }
-            })
-            .flatten()
-            .map(|l| l + 1)
+    #[test]
+    fn test_add() {
+        assert_eq!(QueryString::from("a").add_key("b"), QueryString::from("a[b]"));
+        assert_eq!(QueryString::from("a").add_index(0), QueryString::from("a[0]"));
+    }
+    
+    #[test]
+    fn test_qs_macro() {
+        let qs = qs!(a[b][c]);
+        assert_eq!(qs, QueryString::from("a[b][c]"));
     }
 }

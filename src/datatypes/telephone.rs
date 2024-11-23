@@ -13,7 +13,7 @@ const EMAIL_REGEX: LazyCell<Regex> =
     LazyCell::new(|| Regex::new(r"^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$").unwrap());
 
 /// A datatype representing a telephone number.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 pub struct Telephone(String);
 
 /// The error type for the `Telephone` datatype.
@@ -45,8 +45,10 @@ impl Datatype for Telephone {
     fn attributes() -> Vec<(&'static str, leptos::Attribute)> {
         vec![("type", "tel".into_attribute())]
     }
+}
 
-    fn default_debug_value() -> Self {
+impl Default for Telephone {
+    fn default() -> Self {
         Self::validate("+41234567890".into()).unwrap()
     }
 }

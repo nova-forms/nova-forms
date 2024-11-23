@@ -73,10 +73,6 @@ macro_rules! impl_direct_datatypes {
                         v
                     }) ),* ]
                 }
-
-                fn default_debug_value() -> Self {
-                    Default::default()
-                }
             }
         )*
     };
@@ -162,9 +158,9 @@ macro_rules! impl_datatype {
 
 /// A trait for defining custom datatypes.
 /// Implemented on all types that can be used as a form input.
-pub trait Datatype: Clone + Display + Debug + FromStr<Err = Self::Error> + Into<Self::Inner> + 'static {
+pub trait Datatype: Clone + Display + Debug + Default + FromStr<Err = Self::Error> + Into<Self::Inner> + PartialEq + 'static {
     type Inner: Datatype;
-    type Error: From<<Self::Inner as Datatype>::Error> + Error + Clone + 'static;
+    type Error: From<<Self::Inner as Datatype>::Error> + Error + Clone + PartialEq + 'static;
 
     /// Validate the input and return the datatype.
     fn validate(input: Self::Inner) -> Result<Self, Self::Error>
@@ -173,11 +169,6 @@ pub trait Datatype: Clone + Display + Debug + FromStr<Err = Self::Error> + Into<
 
     /// Return the HTML attributes for the datatype that should be added to an input field.
     fn attributes() -> Vec<(&'static str, Attribute)>;
-
-    /// Debug value to autofill the form.
-    fn default_debug_value() -> Self
-    where
-        Self: Sized;
 }
 
 // Defines custom translations for a type `T`.

@@ -1,6 +1,6 @@
 use leptos::*;
 
-use crate::{ButtonGroup, Group, QueryString};
+use crate::{ButtonGroup, FormData, Group, QueryString};
 
 use super::Button;
 
@@ -16,7 +16,9 @@ where
     F: Fn(usize) -> IV + 'static,
     IV: IntoView,
 {
-    let (_qs, form_data) = bind.form_context();
+    let qs = bind.context();
+    let form_data = FormData::with_context(&qs);
+    
     let (size, set_size) = create_signal(form_data.len().unwrap_or(0));
     let item = store_value(item);
 

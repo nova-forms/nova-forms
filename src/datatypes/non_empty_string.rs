@@ -9,7 +9,7 @@ use crate::impl_datatype;
 use super::Datatype;
 
 /// A datatype representing a non-empty string.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default, Serialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
 pub struct NonEmptyString(String);
 
 /// The error type for the `NonEmptyString` datatype.
@@ -44,9 +44,12 @@ impl Datatype for NonEmptyString {
             ("required", Attribute::Bool(true)),
         ]
     }
+}
 
-    fn default_debug_value() -> Self {
-        Self::validate("Test".into()).unwrap()
+impl Default for NonEmptyString {
+    fn default() -> Self {
+        Self::validate("test".into()).unwrap()
+
     }
 }
 

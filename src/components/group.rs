@@ -1,6 +1,6 @@
 use leptos::*;
 
-use crate::QueryString;
+use crate::{FormData, QueryString};
 
 /// A component that binds all of its contents to a part of the form data.
 #[component]
@@ -10,7 +10,8 @@ pub fn Group(
     /// The children of the group.
     children: Children
 ) -> impl IntoView {
-    let (qs, form_data) = bind.form_context();
+    let qs = bind.context();
+    let form_data = FormData::with_context(&qs);
 
     view! {
         <Provider value=qs>

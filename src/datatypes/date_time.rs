@@ -78,7 +78,7 @@ impl FromStr for DateTime {
 
 /// The error type for the `DateTime` datatype.
 /// This error is returned when the input is not a valid date and time and can be used to display an error message by providing a custom translation.
-#[derive(Debug, Error, Clone)]
+#[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum DateTimeError {
     #[error(transparent)]
     Parse(#[from] time::error::Parse),

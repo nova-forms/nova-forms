@@ -14,7 +14,7 @@ use std::{fmt::Debug, marker::PhantomData, path::{Path, PathBuf}, str::FromStr};
 use thiserror::Error;
 
 use crate::{
-    local_utc_offset, use_translation, DialogKind, FormDataSerialized, InputsContext, Modal, PagesContext, QueryString, APP_CSS, PRINT_CSS, VARIABLES_CSS
+    local_utc_offset, use_translation, DialogKind, FormData, InputsContext, Modal, PagesContext, QueryString, APP_CSS, PRINT_CSS, VARIABLES_CSS
 };
 
 use super::{InputData, PageContext};
@@ -56,7 +56,7 @@ pub(crate) type Version = u64;
 /// This context is only available in the backend.
 #[derive(Debug, Clone)]
 pub struct RenderContext {
-    form_data: FormDataSerialized,
+    form_data: FormData,
     meta_data: MetaData,
 }
 
@@ -67,12 +67,12 @@ impl RenderContext {
     {
         Self {
             meta_data,
-            form_data: FormDataSerialized::from_form_data(form_data),
+            form_data: FormData::serialize(form_data),
         }
     }
 
     /// The form data is used to fill the form with data.
-    pub fn form_data(&self) -> &FormDataSerialized {
+    pub fn form_data(&self) -> &FormData {
         &self.form_data
     }
 
@@ -254,7 +254,7 @@ where
     let form_data_serialized = if let Some(render_context) = &render_context {
         render_context.form_data().clone()
     } else {
-        FormDataSerialized::default()
+        FormData::default()
     };
 
     provide_context(bind.clone());
@@ -427,12 +427,14 @@ macro_rules! init_nova_forms {
         pub fn BaseContextProvider(
             //#[prop(into, optional)] base_url: Option<String>,
             children: leptos::Children,
-        ) -> impl IntoView {
+        ) -> impl leptos::IntoView {
             use std::str::FromStr;
             use std::path::PathBuf;
+            use leptos::*;
+            use leptos_meta::*;
 
             // Provides context that manages stylesheets, titles, meta tags, etc.
-            leptos_meta::provide_meta_context();
+            provide_meta_context();
 
             #[allow(unused_mut)]
             let mut base_url = PathBuf::from("/");
@@ -473,11 +475,13 @@ macro_rules! init_nova_forms {
             form_data: F,
             meta_data: MetaData,
             children: leptos::Children,
-        ) -> impl IntoView
+        ) -> impl leptos::IntoView
         where
-            F: Serialize + 'static,
+            F: serde::Serialize + 'static,
         {
             use std::str::FromStr;
+            use leptos::*;
+            use leptos_meta::*;
 
             let locale = meta_data.locale.clone();
 
