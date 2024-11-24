@@ -14,10 +14,8 @@ use std::{fmt::Debug, marker::PhantomData, path::{Path, PathBuf}, str::FromStr};
 use thiserror::Error;
 
 use crate::{
-    local_utc_offset, use_translation, DialogKind, FormData, InputsContext, Modal, PagesContext, QueryString, APP_CSS, PRINT_CSS, VARIABLES_CSS
+    local_utc_offset, use_translation, DialogKind, FormData, GroupContext, Modal, QueryString, APP_CSS, PRINT_CSS, VARIABLES_CSS
 };
-
-use super::{InputData, PageContext};
 
 /// Can be used to provide custom translations.
 /// If not provided, the default english translations will be used.
@@ -49,8 +47,6 @@ pub enum SubmitState {
     Error(SubmitError),
     Success,
 }
-
-pub(crate) type Version = u64;
 
 /// The context that is used to render the form.
 /// This context is only available in the backend.
@@ -84,11 +80,11 @@ impl RenderContext {
 
 /// The base context provides general information about the environment.
 #[derive(Debug, Clone)]
-pub struct BaseContext {
+pub struct AppContext {
     base_url: PathBuf,
 }
 
-impl BaseContext {
+impl AppContext {
     pub fn new(base_url: PathBuf) -> Self {
         Self { base_url }
     }
@@ -113,13 +109,13 @@ impl BaseContext {
 
 #[test]
 fn test_base_context_resolve_path() {
-    let base_context = BaseContext::new(PathBuf::from("/"));
+    let base_context = AppContext::new(PathBuf::from("/"));
     assert_eq!(base_context.resolve_path("/pkg/app.css"), "/pkg/app.css");
     assert_eq!(base_context.resolve_path("pkg/app.css"), "/pkg/app.css");
     assert_eq!(base_context.resolve_path("app.css"), "/app.css");
     assert_eq!(base_context.resolve_path("/app.css"), "/app.css");
 
-    let base_context = BaseContext::new(PathBuf::from("/site"));
+    let base_context = AppContext::new(PathBuf::from("/site"));
     assert_eq!(base_context.resolve_path("/pkg/app.css"), "/site/pkg/app.css");
     assert_eq!(base_context.resolve_path("pkg/app.css"), "/site/pkg/app.css");
     assert_eq!(base_context.resolve_path("app.css"), "/site/app.css");
@@ -136,27 +132,12 @@ impl From<PathBuf> for SiteRoot {
 }
 
 #[derive(Debug, Clone, Copy)]
-pub struct NovaFormContext {
+pub struct FormContext {
     form_id: Ustr,
     preview: RwSignal<bool>,
-    trigger_validation: RwSignal<Version>,
-    inputs: RwSignal<InputsContext>,
 }
 
-impl NovaFormContext {
-    pub fn trigger_validation(&self) -> Result<(), ()> {
-        self.trigger_validation.update(|v| *v += 1);
-
-        if let Some(input) = self.inputs.get().has_errors() {
-            if let Some(pages_context) = use_context::<RwSignal<PagesContext>>() {
-                pages_context.update(|pages_context| pages_context.select(input.page_id.unwrap()));
-            }
-            return Err(());
-        }
-
-        Ok(())
-    }
-
+impl FormContext {
     pub fn is_render_mode(&self) -> bool {
         self.preview.get() || use_context::<RenderContext>().is_some()
     }
@@ -179,38 +160,6 @@ impl NovaFormContext {
 
     pub fn form_id(&self) -> &str {
         self.form_id.as_str()
-    }
-
-    pub(crate) fn version(&self) -> u64 {
-        self.trigger_validation.get_untracked()
-    }
-
-    pub(crate) fn set_error(&self, qs: &QueryString, has_error: bool) {
-        self.inputs.update(|inputs| {
-            inputs.set_error(&qs, has_error);
-        });
-    }
-
-    pub(crate) fn deregister_input(&self, qs: QueryString) {
-        self.inputs.update(|inputs| {
-            inputs.deregister(&qs);
-        });
-    }
-
-    pub(crate) fn register_input(&self, qs: QueryString, label: TextProp) -> Signal<bool> {
-        self.inputs.update(|inputs| {
-            inputs.register(qs, InputData {
-                page_id: use_context::<PageContext>().map(|page| page.id()),
-                label,
-                has_error: false,
-                version: self.version(),
-            });
-        });
-
-        let version = self.version();
-        let trigger_validation = self.trigger_validation;
-
-        Signal::derive(move || trigger_validation.get() > version)
     }
 }
 
@@ -250,21 +199,21 @@ where
     //logging::log!("Form data local storage: {:?}, provided {:?}", local_storage.get(), form_data);
 
     let render_context = use_context::<RenderContext>();
-
     let form_data_serialized = if let Some(render_context) = &render_context {
         render_context.form_data().clone()
     } else {
         FormData::default()
     };
 
-    provide_context(bind.clone());
+    let group = GroupContext::new(bind);
+    provide_context(group);
+
+    //provide_context(bind.clone());
     provide_context(form_data_serialized.clone());
 
     let preview = create_rw_signal(false);
     let form_id = Ustr::from("nova-form");
-    let inputs = create_rw_signal(InputsContext::new());
-    let trigger_validation = create_rw_signal(0);
-    let nova_form_context = NovaFormContext { preview, form_id, trigger_validation, inputs };
+    let nova_form_context = FormContext { preview, form_id };
     provide_context(nova_form_context);
 
     let (submit_state, set_submit_state) = create_signal(SubmitState::Initial);
@@ -316,7 +265,9 @@ where
                 }
                 return;
             }*/
-            if nova_form_context.trigger_validation().is_err() {
+
+            group.validate();
+            if group.error() {
                 set_submit_state.set(SubmitState::Error(SubmitError::ValidationError));
                 return;
             }
@@ -401,7 +352,6 @@ where
             msg={use_translation::<SubmitState, _>(submit_state)}
             close=move |()| set_submit_state.set(SubmitState::Initial)
         />
-        
     }
 }
 
@@ -415,7 +365,7 @@ pub struct MetaData {
     pub local_utc_offset: UtcOffset,
 }
 
-/// Initializes the Nova Forms `BaseContextProvider` and `RenderContextProvider`.
+/// Initializes the Nova Forms `AppContextProvider` and `RenderContextProvider`.
 #[macro_export]
 macro_rules! init_nova_forms {
     ( $( $base_url:literal )? ) => {
@@ -424,7 +374,7 @@ macro_rules! init_nova_forms {
         use i18n::*;
 
         #[component]
-        pub fn BaseContextProvider(
+        pub fn AppContextProvider(
             //#[prop(into, optional)] base_url: Option<String>,
             children: leptos::Children,
         ) -> impl leptos::IntoView {
@@ -440,7 +390,7 @@ macro_rules! init_nova_forms {
             let mut base_url = PathBuf::from("/");
             $( base_url = PathBuf::from($base_url); )?
 
-            let base_context = $crate::BaseContext::new(base_url.clone());
+            let base_context = $crate::AppContext::new(base_url.clone());
             provide_context(base_context.clone());
 
             view! {
@@ -489,13 +439,13 @@ macro_rules! init_nova_forms {
             provide_context($crate::RenderContext::new(&form_data, meta_data));
                         
             view! {
-                <BaseContextProvider>
+                <AppContextProvider>
                     {
                         // Sets the locale from the meta data.
                         let i18n = use_i18n();
                         i18n.set_locale(i18n::Locale::from_str(&locale).unwrap());
                         
-                        let base_context = expect_context::<$crate::BaseContext>();
+                        let base_context = expect_context::<$crate::AppContext>();
                       
                         view! {
                             {children()}
@@ -503,7 +453,7 @@ macro_rules! init_nova_forms {
                             <Stylesheet href=base_context.resolve_path("print.css") />
                         }
                     }
-                </BaseContextProvider>
+                </AppContextProvider>
             }
         }
     };

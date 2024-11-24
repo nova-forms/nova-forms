@@ -1,72 +1,5 @@
-use super::PageId;
 use crate::{Datatype, QueryString, FieldWiring};
 use leptos::*;
-
-mod context {
-    use super::PageId;
-    use crate::QueryString;
-    use leptos::*;
-    use std::{borrow::Cow, collections::HashMap, str::FromStr};
-
-    #[derive(Debug, Clone)]
-    pub(crate) struct InputData {
-        pub(crate) page_id: Option<PageId>,
-        #[allow(unused)]
-        pub(crate) label: TextProp,
-        pub(crate) has_error: bool,
-        #[allow(unused)]
-        pub(crate) version: u64,
-    }
-
-    #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-    pub(crate) struct InputId(Cow<'static, str>);
-
-    impl ToString for InputId {
-        fn to_string(&self) -> String {
-            self.0.to_string()
-        }
-    }
-
-    impl FromStr for InputId {
-        type Err = ();
-
-        fn from_str(s: &str) -> Result<Self, Self::Err> {
-            Ok(InputId(Cow::Owned(s.to_owned())))
-        }
-    }
-
-    #[derive(Debug, Clone)]
-    pub(crate) struct InputsContext {
-        inputs: HashMap<QueryString, InputData>,
-    }
-
-    impl InputsContext {
-        pub fn new() -> Self {
-            Self {
-                inputs: HashMap::new(),
-            }
-        }
-
-        pub fn register(&mut self, qs: QueryString, data: InputData) {
-            self.inputs.insert(qs, data);
-        }
-
-        pub fn deregister(&mut self, qs: &QueryString) {
-            self.inputs.remove(qs);
-        }
-
-        pub fn set_error(&mut self, qs: &QueryString, has_error: bool) {
-            self.inputs.get_mut(qs).expect("cannot set error").has_error = has_error;
-        }
-
-        pub fn has_errors(&self) -> Option<&InputData> {
-            self.inputs.values().find(|data| data.has_error)
-        }
-    }
-}
-
-pub(crate) use context::*;
-
 
 /// A component that renders an input field.
 /// It takes a datatype as a type parameter and automatically handles parsing and validation.
@@ -90,13 +23,22 @@ where
 {    
     let FieldWiring {
         qs,
-        node_ref,
         raw_value,
         error,
         set_raw_value,
         render_mode,
         ..
     } = FieldWiring::wire(label.clone(), bind, value, change, error);
+
+    // Get value on load from the input field.
+    let node_ref = NodeRef::new();
+    node_ref.on_load(move |element| {
+        let element: &web_sys::HtmlInputElement = &*element;
+        let value = element.value();
+        if !value.is_empty() {
+            set_raw_value.call(value);
+        }
+    });
 
     let text_elem = T::attributes()
         .into_iter()

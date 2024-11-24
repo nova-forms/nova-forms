@@ -4,10 +4,11 @@ use leptos::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{Icon, QueryString};
+use crate::{Group, GroupContext, Icon, QueryString};
 use serde::de::Error;
 use server_fn::codec::{MultipartData, MultipartFormData};
 use web_sys::{wasm_bindgen::JsCast, FormData, HtmlInputElement};
+
 
 // See this for reference: https://github.com/leptos-rs/leptos/blob/96e2b5cba10d2296f262820be19cac9b615b0d23/examples/server_fns_axum/src/app.rs
 
@@ -18,8 +19,6 @@ pub fn FileUpload(
     /// The query string to bind to a list of `FileId`s.
     #[prop(into)] bind: QueryString
 ) -> impl IntoView {
-    let qs = bind.context();
-
     let (file_info, set_file_info) = create_signal(Vec::new());
 
     let on_input = move |ev: web_sys::Event| {
@@ -53,27 +52,37 @@ pub fn FileUpload(
     };
 
     view! {
-        <label class="button icon-button" for=qs.to_string()>
-            <input id=qs.to_string() type="file" class="sr-hidden" on:input=on_input disabled=cfg!(feature = "csr") />
-            <Icon label="Upload" icon="upload" />
-        </label>
-        <ul>
-            <For
-                each=move || file_info.get().into_iter().enumerate()
-                key=|(_, (file_id, _))| file_id.clone()
-                // renders each item to a view
-                children=move |(i, (file_id, file_info))| {
-                    let qs = bind.clone().context().add_index(i);
+        <Group bind=bind>
+            {
+                let group = expect_context::<GroupContext>();
+                let qs = group.qs();
 
-                    view! {
-                        <li>
-                            {format!("{}", file_info.file_name)}
-                            <input type="hidden" name=qs value=file_id.to_string() />
-                        </li>
-                    }
+                view! {
+                    <label class="button icon-button" for=qs.to_string()>
+                        <input id=qs.to_string() type="file" class="sr-hidden" on:input=on_input disabled=cfg!(feature = "csr") />
+                        <Icon label="Upload" icon="upload" />
+                    </label>
+                    <ul>
+                        <For
+                            each=move || file_info.get().into_iter().enumerate()
+                            key=|(_, (file_id, _))| file_id.clone()
+                            // renders each item to a view
+                            children=move |(i, (file_id, file_info))| {
+                                let qs = qs.add_index(i);
+        
+                                view! {
+                                    <li>
+                                        {format!("{}", file_info.file_name)}
+                                        <input type="hidden" name=qs value=file_id.to_string() />
+                                    </li>
+                                }
+                            }
+                        />
+                    </ul>
                 }
-            />
-        </ul>
+            }
+        </Group>
+        
     }
 }
 

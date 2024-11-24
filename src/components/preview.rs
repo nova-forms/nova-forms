@@ -1,12 +1,12 @@
 use leptos::*;
 use leptos_meta::*;
 
-use crate::{NovaFormContext, PRINT_CSS};
+use crate::{FormContext, PRINT_CSS};
 
-use super::BaseContext;
+use super::AppContext;
 
 pub fn start_preview(form_id: &str) {
-    let base_context = expect_context::<BaseContext>();
+    let base_context = expect_context::<AppContext>();
 
     js_sys::eval(&format!(r#"
             startPreview("{}", "{}", `@scope (#preview) {{ {} }}`);
@@ -25,7 +25,7 @@ pub fn stop_preview(_form_id: &str) {
 
 #[component]
 pub fn Preview() -> impl IntoView {
-    let nova_form_context = expect_context::<NovaFormContext>();
+    let nova_form_context = expect_context::<FormContext>();
 
     view! {
         <Script>r#"

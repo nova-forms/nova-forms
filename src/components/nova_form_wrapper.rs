@@ -1,6 +1,6 @@
 use leptos::*;
 
-use crate::BaseContext;
+use crate::AppContext;
 
 /// A container for a form.
 /// Adds a header with a logo, title, and subtitle, as well as a footer with the title.
@@ -18,7 +18,7 @@ pub fn NovaFormWrapper(
     /// The nova form goes here.
     children: Children,
 ) -> impl IntoView {
-    let base_context = expect_context::<BaseContext>();
+    let base_context = expect_context::<AppContext>();
 
     view! {
         <header>

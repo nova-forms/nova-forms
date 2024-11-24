@@ -1,7 +1,6 @@
 use std::{fmt::Display, hash::Hash, str::FromStr};
 
 use crate::{use_translation, QueryString, FieldWiring};
-use html::Input;
 use leptos::*;
 use strum::{IntoEnumIterator, ParseError};
 
@@ -28,7 +27,7 @@ where
         error,
         set_raw_value,
         ..
-    } = FieldWiring::<T, Input>::wire(label.clone(), bind, value, change, error);
+    } = FieldWiring::<T>::wire(label.clone(), bind, value, change, error);
  
     view! {
         <div

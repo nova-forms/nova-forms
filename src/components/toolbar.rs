@@ -3,7 +3,7 @@ use std::{fmt::Debug, str::FromStr};
 use leptos::*;
 use leptos_i18n::{I18nContext, Locale, LocaleKeys};
 
-use crate::{start_preview, stop_preview, use_translation, ButtonGroup, Button, SelectButton, NovaFormContext, PagesContext, Translation};
+use crate::{start_preview, stop_preview, use_translation, ButtonGroup, Button, SelectButton, FormContext, PagesContext, Translation};
 
 #[component]
 pub fn Toolbar(
@@ -14,7 +14,7 @@ pub fn Toolbar(
 
 #[component]
 pub fn ToolbarSubmitButton() -> impl IntoView {
-    let nova_form_context = expect_context::<NovaFormContext>();
+    let nova_form_context = expect_context::<FormContext>();
 
     view! {
         <Button
@@ -30,7 +30,7 @@ pub fn ToolbarSubmitButton() -> impl IntoView {
 
 #[component]
 pub fn ToolbarPreviewButton() -> impl IntoView {
-    let nova_form_context = expect_context::<NovaFormContext>();
+    let nova_form_context = expect_context::<FormContext>();
 
     view! {
         {move || {
@@ -70,7 +70,7 @@ where
     <L as FromStr>::Err: Debug,
     K: LocaleKeys<Locale = L> + 'static,
 {
-    let nova_form_context = expect_context::<NovaFormContext>();
+    let nova_form_context = expect_context::<FormContext>();
 
     let locales = L::get_all()
         .iter()

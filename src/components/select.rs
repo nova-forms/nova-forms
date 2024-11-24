@@ -30,7 +30,17 @@ where
         set_raw_value,
         render_mode,
         ..
-    } = FieldWiring::<T, Select>::wire(label.clone(), bind, value, change, error);
+    } = FieldWiring::<T>::wire(label.clone(), bind, value, change, error);
+
+    // Get value on load from the input field.
+    let node_ref = NodeRef::<Select>::new();
+    node_ref.on_load(move |element| {
+        let element: &web_sys::HtmlSelectElement = &*element;
+        let value = element.value();
+        if !value.is_empty() {
+            set_raw_value.call(value);
+        }
+    });
  
     view! {
         <div
@@ -53,7 +63,7 @@ where
                     text_elem.into_view()
                 } else {
                     view! {
-                        <select id=qs.to_string() name=qs.to_string() on:input=move |ev| {
+                        <select _ref=node_ref id=qs.to_string() name=qs.to_string() on:input=move |ev| {
                             set_raw_value.call(event_target_value(&ev));
                         }>
                             <For

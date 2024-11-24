@@ -1,5 +1,4 @@
 use crate::{Datatype, QueryString, FieldWiring};
-use html::Input;
 use leptos::*;
 
 /// A component that renders a checkbox.
@@ -21,12 +20,19 @@ where
 {    
     let FieldWiring {
         qs,
-        node_ref,
         raw_value,
         error,
         set_raw_value,
         ..
-    } = FieldWiring::<T, Input>::wire(label.clone(), bind, value, change, error);
+    } = FieldWiring::<T>::wire(label.clone(), bind, value, change, error);
+
+    // Get value on load from the input field.
+    let node_ref = NodeRef::new();
+    node_ref.on_load(move |element| {
+        let element: &web_sys::HtmlInputElement = &*element;
+        let value = element.checked();
+        set_raw_value.call(value.to_string());
+    });
 
     let input_elem = html::input()
         .attr("type", "checkbox")

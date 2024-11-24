@@ -77,12 +77,6 @@ impl QueryString {
         Some(self.iter().skip(other.len()).collect())
     }
 
-    pub fn context(&self) -> QueryString {
-        let prefix_qs = expect_context::<QueryString>();
-        let curr_qs = prefix_qs.join(self.clone());
-        curr_qs
-    }
-
     /// Joins two `QueryString`s.
     pub fn join(self, other: Self) -> Self {
         self.iter().chain(other.iter()).collect()

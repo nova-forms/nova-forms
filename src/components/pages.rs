@@ -4,7 +4,7 @@ use crate::{ButtonGroup, Button};
 mod context {
     use leptos::TextProp;
     use ustr::Ustr;
-    use std::str::FromStr;
+    use std::{convert::Infallible, str::FromStr};
 
     #[derive(Debug, Clone)]
     pub struct PageData {
@@ -41,7 +41,7 @@ mod context {
     }
 
     impl FromStr for PageId {
-        type Err = ();
+        type Err = Infallible;
 
         fn from_str(s: &str) -> Result<Self, Self::Err> {
             Ok(PageId(Ustr::from(s)))
@@ -49,8 +49,8 @@ mod context {
     }
 
     impl PageId {
-        pub fn new(id: &'static str) -> Self {
-            Self(Ustr::from(id))
+        pub fn new(s: &str) -> Self {
+            PageId::from_str(s).unwrap()
         }
     }
 
@@ -161,7 +161,6 @@ pub fn Page(
     let id = PageId::new(id);
 
     let pages_context = expect_context::<RwSignal<PagesContext>>();
-
     pages_context.update(|pages_context| pages_context.register(label, id));
 
     view! {
@@ -222,29 +221,5 @@ pub fn PageStepper(
                 />
             </ButtonGroup>
         </div>
-    }
-}
-
-#[component]
-pub fn PagePrevNextButtons() -> impl IntoView {
-    let pages_context = expect_context::<RwSignal<PagesContext>>();
-
-    view! {
-        <ButtonGroup>
-            <Button
-                label="Previous Page"
-                icon="arrow_back"
-                on:click=move |_| pages_context.update(|pages| pages.prev())
-                disabled=Signal::derive(move || pages_context.get().is_first_selected())
-            />
-            <Button
-                label="Next Page"
-                icon="arrow_forward"
-                on:click=move |_| {
-                    pages_context.update(|pages_context| pages_context.next());
-                }
-                disabled=Signal::derive(move || pages_context.get().is_last_selected())
-            />
-        </ButtonGroup>
     }
 }
