@@ -155,13 +155,17 @@ impl Display for QueryString {
     }
 }
 
+/// Creates a `QueryString`.
 #[macro_export]
 macro_rules! qs {
     ( $key:ident $($t:tt)* ) => {
         qs!(@part($crate::QueryString::default().add_key(stringify!($key))) $($t)*)
     };
+    () => {
+        $crate::QueryString::default()
+    };
     ( @part($part:expr) [ $index:literal ] $($t:tt)* ) => {
-        qs!(@part(part.add_index($index)) $($t)*)
+        qs!(@part($part.add_index($index)) $($t)*)
     };
     ( @part($part:expr) [ $key:ident ] $($t:tt)* ) => {
         qs!(@part($part.add_key(stringify!($key))) $($t)*)
@@ -195,5 +199,11 @@ mod tests {
     fn test_qs_macro() {
         let qs = qs!(a[b][c]);
         assert_eq!(qs, QueryString::from("a[b][c]"));
+        let qs = qs!(a[0][c]);
+        assert_eq!(qs, QueryString::from("a[0][c]"));
+        let qs = qs!(a);
+        assert_eq!(qs, QueryString::from("a"));
+        let qs = qs!();
+        assert_eq!(qs, QueryString::default());
     }
 }

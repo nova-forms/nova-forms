@@ -1,5 +1,6 @@
 use leptos::*;
 
+/// Wires multiple input signals to an output signal using the given function.
 #[macro_export]
 macro_rules! wire {
     ( move | $($input:ident),* | $($t:tt)* ) => {
@@ -19,7 +20,7 @@ macro_rules! wire {
     };
 }
 
-
+/// Calls the input function only if the returned functions result is ok.
 pub fn on_ok<F, T, E>(f: F) -> impl Fn(Result<T, E>)
 where
     F: Fn(T) + 'static,
@@ -31,6 +32,7 @@ where
     }   
 }
 
+/// Calls the input function only if the returned functions result is an error.
 pub fn on_err<F, T, E>(f: F) -> impl Fn(Result<T, E>)
 where
     F: Fn(E) + 'static,
@@ -42,7 +44,7 @@ where
     }   
 }
 
-
+/// Returns a function that sets a signal.
 pub fn set<T, S>(signal: S) -> impl Fn(T)
 where
     S: SignalSet<Value = T>,

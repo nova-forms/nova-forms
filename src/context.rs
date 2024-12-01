@@ -1,32 +1,34 @@
 use crate::{FormData, QueryString};
 use leptos::*;
-use std::collections::HashMap;
+use serde::{de::DeserializeOwned, Serialize};
+use std::{collections::HashMap, str::FromStr};
 
 #[derive(Debug, Clone, Copy)]
 pub struct InputContext(RwSignal<InputData>);
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 struct InputData {
-    label: TextProp,
     error: bool,
     disabled: bool,
     validate: ReadSignal<bool>,
     set_validate: WriteSignal<bool>,
     qs: QueryString,
+    form_data: FormData,
 }
 
 impl InputContext {
-    pub fn new(bind: QueryString, label: TextProp) -> Self {
+    pub fn new(bind: QueryString) -> Self {
         let parent_group = use_context::<GroupContext>();
+        let form_data = expect_context::<FormData>();
 
         let (validate, set_validate) = create_signal(false);
         let input = InputContext(RwSignal::new(InputData {
-            label,
             error: false,
             disabled: false,
             validate,
             set_validate,
             qs: parent_group.map(|parent_group| parent_group.qs()).unwrap_or_default().join(bind),
+            form_data,
         }));
 
         if let Some(parent_group) = parent_group {
@@ -67,12 +69,24 @@ impl InputContext {
         self.0.get_untracked().validate.into()
     }
 
-    pub fn label(&self) -> TextProp {
-        self.0.get_untracked().label.clone()
-    }
-
     pub fn qs(&self) -> QueryString {
         self.0.get_untracked().qs
+    }
+
+    pub fn raw_value(&self) -> Signal<String> {
+        self.0.get_untracked().form_data.raw_value(self.qs())
+    }
+
+    pub fn set_raw_value<S: Into<String>>(&self, value: S) {
+        self.0.get_untracked().form_data.set_raw_value(self.qs(), value);
+    }
+
+    pub fn value<T: FromStr>(&self) -> Signal<Result<T, T::Err>> {
+        self.0.get_untracked().form_data.value(self.qs())
+    }
+
+    pub fn set_value<T: ToString>(&self, value: T) {
+        self.0.get_untracked().form_data.set_value(self.qs(), value);
     }
 }
 
@@ -83,15 +97,18 @@ pub struct GroupContext(RwSignal<GroupData>);
 struct GroupData {
     inputs: HashMap<QueryString, Node>,
     qs: QueryString,
+    form_data: FormData,
 }
 
 impl GroupContext {
     pub fn new(bind: QueryString) -> Self {
         let parent_group = use_context::<GroupContext>();
+        let form_data = expect_context::<FormData>();
 
         let group = GroupContext(RwSignal::new(GroupData {
             inputs: HashMap::new(),
             qs: parent_group.map(|parent_group| parent_group.qs()).unwrap_or_default().join(bind),
+            form_data
         }));
 
         if let Some(parent_group) = parent_group {
@@ -106,10 +123,6 @@ impl GroupContext {
 
     pub fn qs(&self) -> QueryString {
         self.0.get_untracked().qs
-    }
-
-    pub fn form_data(&self) -> FormData {
-        FormData::with_context(&self.qs())
     }
 
     fn register_input(&self, qs: &QueryString, input: InputContext) {
@@ -163,6 +176,18 @@ impl GroupContext {
                 }
             }
         });
+    }
+
+    pub fn value<T: DeserializeOwned + PartialEq>(&self) -> Signal<Option<T>> {
+        self.0.get_untracked().form_data.values(self.qs())
+    }
+
+    pub fn set_value<T: Serialize>(&self, values: T) {
+        self.0.get_untracked().form_data.set_values(self.qs(), values);
+    }
+
+    pub fn len(&self) -> Option<usize> {
+        self.0.get_untracked().form_data.len(self.qs())
     }
 }
 

@@ -28,7 +28,7 @@ where
         set_raw_value,
         render_mode,
         ..
-    } = FieldWiring::wire(label.clone(), bind, value, change, error);
+    } = FieldWiring::wire(bind, value, change, error);
 
     // Get value on load from the input field.
     let node_ref = NodeRef::new();
@@ -40,6 +40,7 @@ where
         }
     });
 
+    /*
     let text_elem = T::attributes()
         .into_iter()
         .filter(|(name, _)| *name != "type")
@@ -48,7 +49,11 @@ where
         .attr("readonly", true)
         .attr("id", qs.to_string())
         .attr("name", qs.to_string())
-        .prop("value", move || raw_value.get());
+        .prop("value", move || {
+            logging::log!("raw_value in text elem is : {:?}", raw_value.get());
+            raw_value.get()
+        });
+    */
 
     let input_elem = T::attributes()
         .into_iter()
@@ -68,23 +73,25 @@ where
             class:error=move || error.get().is_some()
             class:ok=move || error.get().is_none()
         >
-            <label for=qs.to_string()>{label}</label>
             {move || {
                 if render_mode.get() {
-                    text_elem.clone()
+                    view!{
+                        <span class="label">{label.clone()}</span>
+                        <span class="value">{raw_value.get()}</span>
+                    }.into_view()
                 } else {
-                    input_elem.clone()
-                }
-            }}
-            {move || {
-                if let Some(error) = error.get() {
-                    view! { <span class="error-message">{error}</span> }
-                        .into_view()
-                } else
-                if let Some(error) = error.get(){
-                    view! { <span class="error-message">{error}</span> }.into_view()
-                } else {
-                    View::default()
+                    view! {
+                        <label for=qs.to_string()>{label.clone()}</label>
+                        {input_elem.clone()}
+                        {move || {
+                            if let Some(error) = error.get() {
+                                view! { <span class="error-message">{error}</span> }
+                                    .into_view()
+                            } else {
+                                View::default()
+                            }
+                        }}
+                    }.into_view()
                 }
             }}
         </div>

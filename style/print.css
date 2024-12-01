@@ -19,12 +19,6 @@ form {
 	color: black;
 }
 
-input,
-select,
-textarea {
-	color: black;
-}
-
 input[type=submit],
 input[type=button],
 button,
@@ -32,15 +26,28 @@ button,
 	display: none !important;
 }
 
+.field {
+	break-inside: avoid;
+}
+
 .field input,
 .field select,
-.field textarea {
+.field textarea,
+.field .value {
+	color: black;
 	padding: 0;
 	margin: 0;
 	border: none !important;
 	background: none !important;
 	pointer-events: none;
+	display: block;
 }
+
+.field .label {
+	display: block;
+	font-weight: bold;
+}
+
 
 .error-message {
 	display: none;

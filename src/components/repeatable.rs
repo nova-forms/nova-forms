@@ -22,7 +22,7 @@ where
         <Group bind=bind>
             {
                 let group = expect_context::<GroupContext>();
-                let (size, set_size) = create_signal(group.form_data().len().unwrap_or(0));
+                let (size, set_size) = create_signal(group.len().unwrap_or(0));
 
                 view! {
                     <div class="repeatable">

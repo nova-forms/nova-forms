@@ -1,9 +1,10 @@
 use std::{fmt::Display, str::FromStr};
 
-use crate::{use_translation, FormContext, FormData, InputContext, QueryString};
+use crate::{use_translation, FormContext, InputContext, QueryString};
 use leptos::*;
-use ustr::Ustr;
 
+/// Used to wire an input field to the form context.
+/// For example, refer to the input field components in this library.
 pub struct FieldWiring<T>
 where
     T: FromStr + ToString + Clone + Default + 'static,
@@ -24,25 +25,22 @@ where
     T::Err: Clone + Display
 {
     pub fn wire(
-        label: TextProp,
         bind: QueryString,
         value: MaybeProp<T>,
         change: Option<Callback<Result<T, T::Err>, ()>>,
         error: MaybeProp<TextProp>,
     ) -> Self {
-        let label_str = Ustr::from(label.clone().get().as_str());
-        let input = InputContext::new(bind, label);
+        let input = InputContext::new(bind);
         let qs = input.qs();
         let validate_signal = input.validate_signal();
         let nova_form_context = expect_context::<FormContext>();
-        let form_data = FormData::with_context(&qs);
-        let form_value = form_data.value();
-        let raw_form_value = form_data.raw_value();
+        let form_value = input.value();
+        let raw_form_value = input.raw_value();
         let (input_typed, set_input_typed) = create_signal(false);
 
         // Set debug value.
         if cfg!(debug_assertions) {
-            form_data.set_value(T::default());
+            input.set_value(T::default());
         }
 
         // Call change callback if value changed.
@@ -53,22 +51,19 @@ where
         }
     
         // Update value
-        let form_data_clone = form_data.clone();
         create_effect(move |_| {
             if let Some(value) = value.get() {
-                form_data_clone.set_value(value);
+                input.set_value(value);
             }
         });
     
-        let form_data_clone = form_data.clone();
         let set_raw_value = Callback::new(move |value| {
-            form_data_clone.set_raw_value(value);
+            input.set_raw_value(value);
             set_input_typed.set(true);
         });
 
-        let form_data_clone = form_data.clone();
         let set_value = Callback::new(move |value| {
-            form_data_clone.set_value(value);
+            input.set_value(value);
             set_input_typed.set(true);
         });
 
