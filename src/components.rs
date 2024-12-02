@@ -17,6 +17,7 @@ mod radio;
 mod dialog;
 mod cols;
 mod print;
+mod choice;
 
 pub use file_upload::*;
 pub use nova_form_wrapper::*;
@@ -37,3 +38,4 @@ pub use cols::*;
 pub use print::*;
 pub use toolbar::*;
 pub use preview::*;
+pub use choice::*;

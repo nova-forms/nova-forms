@@ -92,7 +92,11 @@ pub fn Preview() -> impl IntoView {
         "#</Script>
         <Script src="https://unpkg.com/pagedjs/dist/paged.polyfill.js"></Script>
 
-        <div id="preview-wrapper" class=move || if nova_form_context.is_preview_mode() { "visible" } else { "hidden" }>
+        <div
+            id="preview-wrapper"
+            class:hidden=move || !nova_form_context.is_preview_mode()
+            class:visible=move || nova_form_context.is_preview_mode()
+        >
             <div
                 id="preview"
             ></div>
