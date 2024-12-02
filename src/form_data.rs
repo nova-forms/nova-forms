@@ -7,9 +7,8 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use crate::{QueryString, QueryStringPart};
 
 /// Contains arbitrary form data in a serialized form.
-#[derive(Clone, Debug, Default, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub struct FormData {
-    root: QueryString,
     data: RwSignal<HashMap<QueryString, String>>
 }
 
@@ -50,7 +49,6 @@ impl FromStr for FormData {
             .collect();
 
         Ok(FormData {
-            root: QueryString::default(),
             data: RwSignal::new(map)
         })
     }
@@ -61,11 +59,11 @@ impl ToString for FormData {
         self.data
             .get()
             .iter()
-            .filter_map(|(k, v)| {
-                Some(format!("{}={}", 
-                    k.extends(&self.root)?,
+            .map(|(k, v)| {
+                format!("{}={}", 
+                    k,
                     percent_encode(v.as_bytes(), NON_ALPHANUMERIC)
-                ))
+                )
             })
             .collect::<Vec<_>>()
             .join("&")
@@ -73,22 +71,13 @@ impl ToString for FormData {
 }
 
 impl FormData {
-    pub fn with_context(qs: &QueryString) -> FormData {
-        let form_data = expect_context::<FormData>();
-        FormData {
-            root: *qs,
-            data: form_data.data.clone()
-        }
-    }
-
-    pub fn values<T: DeserializeOwned + PartialEq>(&self) -> Signal<Option<T>> {
+    pub fn values<T: DeserializeOwned + PartialEq>(&self, qs: QueryString) -> Signal<Option<T>> {
         #[derive(Deserialize)]
         struct Value<T> {
             value: T,
         }
 
         let signal = self.data;
-        let root = self.root;
 
         Memo::new(move |_| {
             let data = signal.get();
@@ -97,7 +86,7 @@ impl FormData {
                 .iter()
                 .filter_map(|(k, v)| {
                     Some(format!("{}={}", 
-                        QueryString::default().add_key("value").join(k.extends(&root)?),
+                        QueryString::default().add_key("value").join(k.extends(&qs)?),
                         percent_encode(v.as_bytes(), NON_ALPHANUMERIC)
                     ))
                 })
@@ -108,18 +97,17 @@ impl FormData {
         }).into()
     }
 
-    pub fn set_values<T: Serialize>(&self, values: T) {
+    pub fn set_values<T: Serialize>(&self, qs: QueryString, values: T) {
         self.data.update(|data| {
             let form_data = FormData::serialize(&values);
             for (k, v) in form_data.data.get_untracked() {
-                data.insert(self.root.join(k), v);
+                data.insert(qs.join(k), v);
             }
         });
     }
 
-    pub fn raw_value(&self) -> Signal<String> {
+    pub fn raw_value(&self, qs: QueryString) -> Signal<String> {
         let signal = self.data;
-        let root = self.root;
         
         Memo::new(move |_| {
             let data = signal.get();
@@ -127,47 +115,38 @@ impl FormData {
             let value = data
                 .iter()
                 .filter_map(|(k, v)| {
-                    k.extends(&root)?;
+                    k.extends(&qs)?;
                     Some(v)
                 })
                 .next()
-                .expect("one value required");
+                .cloned()
+                .unwrap_or_default();
     
-            value.clone()
+            value
         }).into()
     }
 
-    pub fn set_raw_value<S: Into<String>>(&self, value: S) {
+    pub fn set_raw_value<S: Into<String>>(&self, qs: QueryString, value: S) {
         self.data.update(|data| {
-            data.insert(self.root.clone(), value.into());
+            data.insert(qs.clone(), value.into());
         });
     }
 
-    pub fn value<T: FromStr>(&self) -> Signal<Result<T, T::Err>> {
-        let signal = self.raw_value();
+    pub fn value<T: FromStr>(&self, qs: QueryString) -> Signal<Result<T, T::Err>> {
+        let signal = self.raw_value(qs);
         Signal::derive(move || T::from_str(&signal.get()))
     }
 
-    pub fn set_value<T: ToString>(&self, value: T) {
-        self.set_raw_value(value.to_string());
-    }
-    
-    pub fn partial(&self, head: &QueryString) -> FormData {
-        let data = self.data;
-        let root = self.root.join(head.clone());
-
-        FormData {
-            root,
-            data,
-        }
+    pub fn set_value<T: ToString>(&self, qs: QueryString, value: T) {
+        self.set_raw_value(qs, value.to_string());
     }
 
-    pub fn len(&self) -> Option<usize> {
+    pub fn len(&self, qs: QueryString) -> Option<usize> {
         self.data
             .get_untracked()
             .keys()
             .map(|k| {
-                if let Some(k) = k.extends(&self.root) {
+                if let Some(k) = k.extends(&qs) {
                     k.iter().next().and_then(|&p| {
                         if let QueryStringPart::Index(i) = p {
                             Some(i)
@@ -193,6 +172,7 @@ impl FormData {
 
 #[cfg(test)]
 mod tests {
+    use crate::qs;
     use super::*;
 
     #[test]
@@ -200,9 +180,9 @@ mod tests {
         let _ = leptos::create_runtime();
 
         let form_data = FormData::from_str("a=1&b=2&c=3").unwrap();
-        assert_eq!(form_data.partial(&QueryString::from("a")).value::<i32>().get_untracked().unwrap(), 1);
-        assert_eq!(form_data.partial(&QueryString::from("b")).value::<i32>().get_untracked().unwrap(), 2);
-        assert_eq!(form_data.partial(&QueryString::from("c")).value::<i32>().get_untracked().unwrap(), 3);
+        assert_eq!(form_data.value::<i32>(qs!(a)).get_untracked().unwrap(), 1);
+        assert_eq!(form_data.value::<i32>(qs!(b)).get_untracked().unwrap(), 2);
+        assert_eq!(form_data.value::<i32>(qs!(c)).get_untracked().unwrap(), 3);
     }
 
     #[test]
@@ -210,10 +190,10 @@ mod tests {
         let _ = leptos::create_runtime();
 
         let form_data = FormData::from_str("a=1&b=2&c=3").unwrap();
-        form_data.partial(&QueryString::from("a")).set_value(4);
-        assert_eq!(form_data.partial(&QueryString::from("a")).value::<i32>().get_untracked().unwrap(), 4);
-        assert_eq!(form_data.partial(&QueryString::from("b")).value::<i32>().get_untracked().unwrap(), 2);
-        assert_eq!(form_data.partial(&QueryString::from("c")).value::<i32>().get_untracked().unwrap(), 3);
+        form_data.set_value(QueryString::from("a"), 4);
+        assert_eq!(form_data.value::<i32>(qs!(a)).get_untracked().unwrap(), 4);
+        assert_eq!(form_data.value::<i32>(qs!(b)).get_untracked().unwrap(), 2);
+        assert_eq!(form_data.value::<i32>(qs!(c)).get_untracked().unwrap(), 3);
     }
 
     #[test]
@@ -228,7 +208,7 @@ mod tests {
         }
 
         let form_data = FormData::from_str("a=1&b=2&c=3").unwrap();
-        assert_eq!(form_data.values::<Test>().get_untracked().unwrap(), Test { a: 1, b: 2, c: 3 });
+        assert_eq!(form_data.values::<Test>(qs!()).get_untracked().unwrap(), Test { a: 1, b: 2, c: 3 });
     }
 
     #[test]
@@ -243,8 +223,8 @@ mod tests {
         }
 
         let form_data = FormData::from_str("a=1&b=2&c=3").unwrap();
-        form_data.set_values(Test { a: 4, b: 5, c: 6 });
-        assert_eq!(form_data.values::<Test>().get_untracked().unwrap(), Test { a: 4, b: 5, c: 6 });
+        form_data.set_values(qs!(), Test { a: 4, b: 5, c: 6 });
+        assert_eq!(form_data.values::<Test>(qs!()).get_untracked().unwrap(), Test { a: 4, b: 5, c: 6 });
     }
 
     #[test]
@@ -252,6 +232,6 @@ mod tests {
         let _ = leptos::create_runtime();
 
         let form_data = FormData::from_str("a[0]=1&a[3]=2&a[1]=3").unwrap();
-        assert_eq!(form_data.partial(&QueryString::from("a")).len().unwrap(), 4);
+        assert_eq!(form_data.len(qs!(a)).unwrap(), 4);
     }
 }

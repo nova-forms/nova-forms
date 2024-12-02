@@ -205,11 +205,11 @@ where
         FormData::default()
     };
 
+    provide_context(form_data_serialized.clone());
     let group = GroupContext::new(bind);
     provide_context(group);
 
     //provide_context(bind.clone());
-    provide_context(form_data_serialized.clone());
 
     let preview = create_rw_signal(false);
     let form_id = Ustr::from("nova-form");

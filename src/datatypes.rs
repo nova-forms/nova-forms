@@ -113,6 +113,7 @@ impl_direct_datatypes! {
     bool where "type": "checkbox";
 }
 
+/// Implements the required traits for creating a datatype.
 #[macro_export]
 macro_rules! impl_datatype {
     ($this:ty) => {
@@ -174,7 +175,7 @@ pub trait Datatype: Clone + Display + Debug + Default + FromStr<Err = Self::Erro
 // Defines custom translations for a type `T`.
 // This is useful for adding custom error messages to error enums.
 #[derive(Clone)]
-pub struct TranslationProvider<T>(Rc<dyn Fn(T) -> TextProp>);
+pub(crate) struct TranslationProvider<T>(Rc<dyn Fn(T) -> TextProp>);
 
 
 /// Adds custom translations to a type `T`.

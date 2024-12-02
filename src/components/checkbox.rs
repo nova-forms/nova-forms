@@ -21,10 +21,12 @@ where
     let FieldWiring {
         qs,
         raw_value,
+        value,
         error,
         set_raw_value,
+        render_mode,
         ..
-    } = FieldWiring::<T>::wire(label.clone(), bind, value, change, error);
+    } = FieldWiring::<T>::wire(bind, value, change, error);
 
     // Get value on load from the input field.
     let node_ref = NodeRef::new();
@@ -52,19 +54,43 @@ where
             class:error=move || error.get().is_some()
             class:ok=move || error.get().is_none()
         >
-            <label for=qs.to_string()>
-                {input_elem}
-                <span class="custom-checkbox"></span>
-                <span class="custom-checkbox-label">{label}</span>
-            </label>
-            {move || {
-                if let Some(error) = error.get() {
-                    view! { <span class="error-message">{error}</span> }
-                        .into_view()
-                } else {
-                    View::default()
-                }
-            }}
+        {move || {
+            if render_mode.get() {
+                // TODO
+                view! {
+                    <label for=qs.to_string()>
+                        {input_elem.clone()}
+                        <span class="custom-checkbox"></span>
+                        <span class="custom-checkbox-label">{label.clone()}</span>
+                    </label>
+                    {move || {
+                        if let Some(error) = error.get() {
+                            view! { <span class="error-message">{error}</span> }
+                                .into_view()
+                        } else {
+                            View::default()
+                        }
+                    }}
+                }.into_view()
+            } else {
+                view! {
+                    <label for=qs.to_string()>
+                        {input_elem.clone()}
+                        <span class="custom-checkbox"></span>
+                        <span class="custom-checkbox-label">{label.clone()}</span>
+                    </label>
+                    {move || {
+                        if let Some(error) = error.get() {
+                            view! { <span class="error-message">{error}</span> }
+                                .into_view()
+                        } else {
+                            View::default()
+                        }
+                    }}
+                }.into_view()
+            }
+        }}
+           
         </div>
     }
 }
