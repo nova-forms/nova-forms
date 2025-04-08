@@ -1,30 +1,29 @@
 use leptos::*;
 
-/// Provides a service to get the city for a given swiss zip code.
+use crate::{Datatype, NonEmptyString, PostalCodeCH};
+
+/// Provides a signal to get the city for a given swiss zip code.
 /// This uses the swiss postal service address checker API (`https://service.post.ch/zopa/app/api/addresschecker/v1/zips`).
-/// Returns a tuple that contains a function which takes an input event, and a signal that contains the city name.
-/// The function taking an input event can be added to a input field and triggers the service call when the input field changes.
-/// The response of the service call is stored in the signal.
-pub fn use_zip_service() -> (Signal<Option<String>>, WriteSignal<String>) {
-    let (zip, set_zip) = create_signal(String::new());
-    let zip_service = create_server_action::<ZipService>();
+pub fn postal_code_service<S: SignalGet<Value = Option<PostalCodeCH>> + 'static>(postal_code: S) -> Signal<Option<NonEmptyString>> {
+    let zip_service = create_server_action::<PostalCodeServiceServerFn>();
     create_effect(move |_| {
-        zip_service.dispatch(ZipService { zip: zip.get() });
+        if let Some(postal_code) = postal_code.get() {
+            zip_service.dispatch(PostalCodeServiceServerFn { zip: postal_code.into() });
+        }
     });
     let zip_service_value = zip_service.value();
     let city = create_memo(move |_| {
         if let Some(Ok(Some(city))) = zip_service_value.get() {
-            Some(city)
+            NonEmptyString::validate(city).ok()
         } else {
             None
         }
     });
-
-    (city.into(), set_zip)
+    city.into()
 }
 
 #[server]
-async fn zip_service(zip: String) -> Result<Option<String>, ServerFnError> {
+async fn postal_code_service_server_fn(zip: String) -> Result<Option<String>, ServerFnError> {
     use serde::Deserialize;
 
     #[derive(Deserialize)]

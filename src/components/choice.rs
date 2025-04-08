@@ -1,95 +1,88 @@
-use std::{fmt::Display, hash::Hash, str::FromStr};
+use std::{fmt::Debug, marker::PhantomData, str::FromStr};
 
-use crate::{use_translation, FieldWiring, Group, QueryString};
+use crate::{BaseGroupContext, GroupContext, QueryString};
 use leptos::*;
-use strum::{IntoDiscriminant, IntoEnumIterator, ParseError};
+
+mod context {
+    use super::*;
+
+    #[derive(Debug, Clone)]
+    pub struct ChoicesContext<T: Clone + Eq + 'static> {
+        selected: Signal<T>,
+    }
+
+    impl<T> ChoicesContext<T>
+    where
+        T: Clone + Eq + 'static
+    {
+        pub fn new<F>(f: F) -> Self
+        where
+            F: Fn() -> T + 'static,
+        {
+            Self {
+                selected: Signal::derive(f)
+            }
+        }
+
+        pub fn selected(&self, discriminant: T) -> Signal<bool> {
+            let selected = self.selected;
+            Signal::derive(move || selected.get() == discriminant)
+        }
+    }
+}
+
+pub(crate) use context::ChoicesContext;
 
 /// A component that renders radio buttons from an enum.
 #[component]
-pub fn Choices<T, F, IV>(
-    /// The label of the input field.
-    #[prop(into)] label: TextProp,
-    /// The query string that binds the input field to the form data.
-    #[prop(into)] bind: QueryString,
-    /// Renders the choice.
-    #[prop(into)] choice: F,
-    /// The initial value of the input field.
-    #[prop(optional, into)] value: MaybeProp<<T as IntoDiscriminant>::Discriminant>,
-    /// A write signal that is updated with the parsed value of the input field.
-    #[prop(optional, into)] change: Option<Callback<Result<<T as IntoDiscriminant>::Discriminant, <<T as IntoDiscriminant>::Discriminant as FromStr>::Err>, ()>>,
-    /// Set a custom error message for the input field.
-    #[prop(optional, into)] error: MaybeProp<TextProp>,
-    #[prop(optional)] _phantom: std::marker::PhantomData<T>,
+pub fn Choices<T>(
+    /// Tag to determine the type.
+    #[prop(into)] tag: QueryString,
+    #[prop(optional)] _phantom: PhantomData<T>,
+    /// Child components.
+    children: Children,
 ) -> impl IntoView
 where
-    F: Fn(<T as IntoDiscriminant>::Discriminant) -> IV + Copy + 'static,
-    IV: IntoView,
-    T: IntoDiscriminant + Clone + Copy + Default + Eq + Hash + Display + 'static,
-    <T as IntoDiscriminant>::Discriminant: IntoEnumIterator + FromStr<Err = ParseError> + Into<&'static str> + Clone + Copy + Default + Eq + Hash + Display + 'static
-{    
-    let FieldWiring {
-        qs,
-        value,
-        error,
-        set_raw_value,
-        ..
-    } = FieldWiring::<<T as IntoDiscriminant>::Discriminant>::wire(label.clone(), bind, value, change, error);
- 
-    view! {
-        <div
-            class="field choices"
-            class:error=move || error.get().is_some()
-            class:ok=move || error.get().is_none()
-        >   
-            <fieldset>
-                <legend>{label}</legend>
-                <For
-                    each={move || <T as IntoDiscriminant>::Discriminant::iter()}
-                    key={|item| *item}
-                    children={move |item| {
+    T: Clone + Eq + Default + Debug + FromStr + 'static,
+    T::Err: Clone + Debug + 'static,
+{   
+    let parent_group = expect_context::<GroupContext>();
+    let base_group = expect_context::<BaseGroupContext>();
+    let value: Signal<Result<T, <T as FromStr>::Err>> = Signal::derive(move || base_group
+        .get(parent_group.qs().join(tag))
+        .get()
+        .expect(&format!("tag {} not found", base_group.qs().join(tag)))
+        .as_input()
+        .expect("expected input, got group").value::<T>()
+        .get());
+    
+    provide_context(ChoicesContext::new(move || value.get().unwrap_or_default()));
 
-                        let input_elem = html::input()
-                            .attr("type", "radio")
-                            .attr("id", format!("{}({})", qs.to_string(), item.into()))
-                            .attr("name", qs.to_string())
-                            .attr("checked", move || value.get() == Ok(item))
-                            .attr("value", move || item.into())
-                            .on(ev::input, move |ev| {
-                                set_raw_value.call(event_target_value(&ev));
-                            });
-                        
-                        view! {
-                            <label for=format!("{}({})", qs.to_string(), item.into())>
-                                {input_elem}
-                                <span class="custom-radio"></span>
-                                <span class="custom-radio-label">{use_translation(item)}</span>
-                            </label>
-                            <Group bind=bind>
-                                <div
-                                    class="choice"
-                                    class:hidden=move || value.get() != Ok(item)
-                                    class:visible=move || value.get() == Ok(item)
-                                >
-                                    {choice(item)}
-                                </div>
-                            </Group>
-                        }
-                    }}
-                />
-                {move || {
-                    if let Some(error) = error.get() {
-                        view! { <span class="error-message">{error}</span> }
-                            .into_view()
-                    } else
-                    if let Some(error) = error.get() {
-                        view! { <span class="error-message">{error}</span> }
-                            .into_view()
-                    } else {
-                        View::default()
-                    }
-                }}
-            </fieldset>
-            
+    let children = children();
+
+    view! {
+        <div class="choices">
+            {children}
+        </div>
+    }
+}
+
+#[component]
+pub fn Choice<T>(
+    /// The label of the input field.
+    #[prop(into)] discriminant: T,
+    #[prop(optional)] children: Option<Children>,
+) -> impl IntoView
+where
+    T: Copy + Eq + 'static
+{    
+    let context = expect_context::<ChoicesContext<T>>();
+
+    view! {
+        <div class=move || {
+            if context.selected(discriminant).get() { "choice selected" } else { "choice hidden" }
+        }>
+            {if let Some(children) = children { children().into_view() } else { View::default() }}
         </div>
     }
 }

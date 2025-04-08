@@ -1,4 +1,4 @@
-use crate::{Datatype, QueryString, FieldWiring};
+use crate::{Datatype, QueryStringPart, FieldWiring};
 use leptos::*;
 
 /// A component that renders an input field.
@@ -8,10 +8,10 @@ pub fn Input<T>(
     /// The label of the input field.
     #[prop(into)] label: TextProp,
     /// The query string that binds the input field to the form data.
-    #[prop(into)] bind: QueryString,
+    #[prop(into)] bind: QueryStringPart,
     /// The placeholder text of the input field.
     #[prop(optional, into)] placeholder: Option<T>,
-    /// The initial value of the input field.
+    /// The value of the input field.
     #[prop(optional, into)] value: MaybeProp<T>,
     /// A write signal that is updated with the parsed value of the input field.
     #[prop(optional, into)] change: Option<Callback<Result<T, T::Error>, ()>>,
@@ -27,8 +27,9 @@ where
         error,
         set_raw_value,
         render_mode,
+        disabled,
         ..
-    } = FieldWiring::wire(bind, value, change, error);
+    } = FieldWiring::wire(bind, value, change, error, label.clone());
 
     // Get value on load from the input field.
     let node_ref = NodeRef::new();
@@ -40,21 +41,6 @@ where
         }
     });
 
-    /*
-    let text_elem = T::attributes()
-        .into_iter()
-        .filter(|(name, _)| *name != "type")
-        .fold(html::input(), |el, (name, value)| el.attr(name, value))
-        .attr("type", "text")
-        .attr("readonly", true)
-        .attr("id", qs.to_string())
-        .attr("name", qs.to_string())
-        .prop("value", move || {
-            logging::log!("raw_value in text elem is : {:?}", raw_value.get());
-            raw_value.get()
-        });
-    */
-
     let input_elem = T::attributes()
         .into_iter()
         .fold(html::input(), |el, (name, value)| el.attr(name, value))
@@ -62,6 +48,7 @@ where
         .attr("name", qs.to_string())
         .attr("placeholder", placeholder.as_ref().map(T::to_string))
         .prop("value", move || raw_value.get())
+        .prop("disabled", move || disabled.get())
         .node_ref(node_ref)
         .on(ev::input, move |ev| {
             set_raw_value.call(event_target_value(&ev));

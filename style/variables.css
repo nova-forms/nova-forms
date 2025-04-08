@@ -10,23 +10,31 @@
     /* Color Pallette */
     --primary: white;
     --secondary: black;
-    --danger: red;
-    --warning: orange;
+    --error: red;
+    --error-light: var(--error);
+    --warning: orange; 
+    --warning-light: var(--warning);
     --success: green;
+    --success-light: var(--success);
     --info: blue;
+    --info-light: var(--info);
     --text: black;
     --disabled: gray;
     --background: white;
 
     /* General Settings */
-    --header-background: lightgray;
+    --header-background: var(--background);
     --header-text-color: var(--text);
+    --header-border: 1px solid var(--text);
+    --header-backdrop-filter: none;
     --main-background: var(--background);
     --main-text-color: var(--text);
     --footer-background: var(--background);
     --footer-text-color: var(--text);
-    --preview-background: lightgray;
+    --footer-border: 1px solid var(--text);
+    --preview-background: var(--background);
     --preview-text-color: var(--text);
+    --preview-shadow: 0 0 8px rgba(0, 0, 0, 0.2);
     --general-padding: 16px;
     --general-line-height: 1.5;
 
@@ -43,6 +51,8 @@
     --input-font: var(--text-font);
     --text-font-size: 16px;
     --input-font-size: var(--text-font-size);
+    --label-font-size: var(--text-font-size);
+    --label-font-weight: normal;
 
     /* Page Settings */
     --page-margin: 2cm;
@@ -54,21 +64,26 @@
     --field-padding: 8px;
     --field-border-radius: var(--field-padding);
     --field-label-margin-bottom: 2px;
-
     --field-background: none;
     --field-background-ok: var(--field-background);
     --field-background-error: var(--field-background);
     --field-background-hover: var(--field-background);
-    --field-background-focus: var(--field-background);
-    --field-background-disabled: var(--disabled);
+    --field-background-focus: var(--field-background-hover);
+    --field-background-disabled: var(--field-background);
     --field-border: 1px solid var(--text);
-    --field-border-ok: 1px solid var(--success);
-    --field-border-error: 1px solid var(--danger);
+    --field-border-ok: 1px solid var(--text);
+    --field-border-error: 1px solid var(--error);
+    --field-border-hover: var(--field-border);
+    --field-border-focus: var(--field-border-hover);
     --field-border-disabled: 1px solid var(--disabled);
     --field-outline-hover: none;
     --field-outline-focus: 1px solid var(--primary);
     --field-shadow-hover: none;
     --field-shadow-focus: none;
+    --field-text-color: var(--text);
+    --field-text-color-hover: var(--field-text-color);
+    --field-text-color-focus: var(--field-text-color-hover);
+    --field-text-color-disabled: var(--disabled);
 
     /* Button Settings */
     --button-group-gap: calc(var(--general-padding) / 2);
@@ -77,13 +92,29 @@
     --button-padding: var(--field-padding);
     --button-border-radius: var(--field-border-radius);
     --button-background: var(--field-background);
-    --button-background-hover: var(--field-background-hover);
-    --button-background-focus: var(--field-background-focus);
+    --button-background-hover: var(--button-background);
+    --button-background-focus: var(--button-background-hover);
     --button-background-disabled: var(--field-background-disabled);
     --button-border: var(--field-border);
+    --button-border-hover: var(--button-border);
+    --button-border-focus: var(--button-border-hover);
     --button-border-disabled: var(--field-border-disabled);
     --button-outline-hover: var(--field-outline-hover);
     --button-outline-focus: var(--field-outline-focus);
     --button-shadow-hover: var(--field-shadow-hover);
     --button-shadow-focus: var(--field-shadow-focus);
+    --button-text-color: var(--text);
+    --button-text-color-hover: var(--button-text-color);
+    --button-text-color-focus: var(--button-text-color-hover);
+    --button-text-color-disabled: var(--disabled);
+
+    /* Dialog Settings */
+    --dialog-info-background: var(--info-light);
+    --dialog-info-text-color: var(--text);
+    --dialog-warning-background: var(--warning-light);
+    --dialog-warning-text-color: var(--text);
+    --dialog-error-background: var(--error-light);
+    --dialog-error-text-color: var(--text);
+    --dialog-success-background: var(--success-light);
+    --dialog-success-text-color: var(--tex);
 }

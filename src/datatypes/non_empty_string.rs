@@ -1,4 +1,4 @@
-use std::convert::Infallible;
+use std::{convert::Infallible, fmt::{Display, self}, ops::Deref};
 
 use leptos::{Attribute, IntoAttribute};
 use serde::Serialize;
@@ -43,6 +43,26 @@ impl Datatype for NonEmptyString {
             ("type", "text".into_attribute()),
             ("required", Attribute::Bool(true)),
         ]
+    }
+}
+
+impl Display for NonEmptyString {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl Deref for NonEmptyString {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Into<String> for NonEmptyString {
+    fn into(self) -> String {
+        self.0
     }
 }
 

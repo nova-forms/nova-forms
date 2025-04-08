@@ -1,4 +1,5 @@
 use leptos::*;
+use leptos_meta::*;
 
 use crate::AppContext;
 
@@ -11,7 +12,7 @@ pub fn NovaFormWrapper(
     /// The title to display in the header and footer.
     #[prop(into)] title: TextProp,
     /// The subtitle to display in the header.
-    #[prop(into)] subtitle: TextProp,
+    #[prop(into, optional)] subtitle: Option<TextProp>,
     /// The footer to display at the bottom of the form.
     /// By default, there is no footer.
     #[prop(into, optional)] footer: Option<Children>,
@@ -21,13 +22,21 @@ pub fn NovaFormWrapper(
     let base_context = expect_context::<AppContext>();
 
     view! {
+        <Title text={title.clone()} />
+
         <header>
             <div class="content">  
                 <img id="logo" src=base_context.resolve_path(logo) />
                 <div id="name">
                     <span id="title">{title.clone()}</span>
-                    <br />
-                    <span id="subtitle">{subtitle}</span>
+                    {if let Some(subtitle) = subtitle {
+                        view! { 
+                            <br />
+                            <span id="subtitle">{subtitle}</span>
+                        }.into_view()
+                    } else {
+                        View::default()
+                    }}
                 </div>
             </div>
         </header>

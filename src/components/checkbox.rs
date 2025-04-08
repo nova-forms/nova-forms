@@ -1,4 +1,4 @@
-use crate::{Datatype, QueryString, FieldWiring};
+use crate::{Datatype, QueryStringPart, FieldWiring};
 use leptos::*;
 
 /// A component that renders a checkbox.
@@ -7,7 +7,7 @@ pub fn Checkbox<T>(
     /// The label of the input field.
     #[prop(into)] label: TextProp,
     /// The query string that binds the input field to the form data.
-    #[prop(into)] bind: QueryString,
+    #[prop(into)] bind: QueryStringPart,
     /// The initial value of the input field.
     #[prop(optional, into)] value: MaybeProp<T>,
     /// A write signal that is updated with the parsed value of the input field.
@@ -20,29 +20,19 @@ where
 {    
     let FieldWiring {
         qs,
-        raw_value,
         value,
         error,
         set_raw_value,
         render_mode,
         ..
-    } = FieldWiring::<T>::wire(bind, value, change, error);
-
-    // Get value on load from the input field.
-    let node_ref = NodeRef::new();
-    node_ref.on_load(move |element| {
-        let element: &web_sys::HtmlInputElement = &*element;
-        let value = element.checked();
-        set_raw_value.call(value.to_string());
-    });
-
+    } = FieldWiring::<T>::wire(bind, value, change, error, label.clone());
+    
     let input_elem = html::input()
         .attr("type", "checkbox")
         .attr("id", qs.to_string())
         .attr("name", qs.to_string())
-        .attr("checked", move || raw_value.get())
+        .attr("checked", move || value.get().unwrap_or_default().into())
         .attr("value", true.to_string())
-        .node_ref(node_ref)
         .on(ev::input, move |ev| {
             set_raw_value.call(event_target_checked(&ev).to_string());
         });

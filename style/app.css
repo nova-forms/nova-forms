@@ -4,7 +4,7 @@
  *
  * General styles that apply to the whole document.
  */
-body {
+ body {
 	font-family: var(--text-font);
 	background: var(--background);
 	color: var(--text);
@@ -48,6 +48,17 @@ p {
 	display: none !important;
 }
 
+/* Sections */
+
+.section {
+    margin-top: 1em;
+    margin-bottom: 1em;
+}
+
+.section-title + .section-description {
+    margin-top: -1em;
+}
+
 
 /* ====================
  * OVERLAY
@@ -71,6 +82,8 @@ main, header, footer {
 header {
 	background: var(--header-background);
 	color: var(--header-text-color);
+	border-bottom: var(--header-border);
+	backdrop-filter: var(--header-backdrop-filter);
 }
 
 main {
@@ -81,6 +94,7 @@ main {
 footer {
     background: var(--footer-background);
     color: var(--footer-text-color);
+	border-top: var(--footer-border);
 }
 
 footer > .content {
@@ -124,10 +138,10 @@ input[type=submit],
 input[type=button],
 button,
 .button {
-	border: none;
+	border: var(--button-border);
 	background: var(--button-background);
 	padding: var(--button-padding);
-	color: var(--text);
+	color: var(--button-text-color);
 	border-radius: var(--button-border-radius);
 	cursor: pointer;
 	display: inline-block;
@@ -145,6 +159,8 @@ button:hover,
 	outline: var(--button-outline-hover);
 	box-shadow: var(--button-shadow-hover);
 	background: var(--button-background-hover);
+	color: var(--button-text-color-hover);
+	border: var(--button-border-hover);
 }
 
 input[type=submit]:focus,
@@ -156,6 +172,8 @@ button:focus,
 	outline: var(--field-outline-focus);
 	box-shadow: var(--field-shadow-focus);
 	background: var(--button-background-focus);
+	color: var(--button-text-color-focus);
+	border: var(--button-border-focus);
 }
 
 input[type=submit]:disabled,
@@ -167,6 +185,7 @@ button:disabled,
 	cursor: not-allowed;
 	background: var(--button-background-disabled);
 	border: var(--button-border-disabled);
+	color: var(--button-text-color-disabled);
 }
 
 .icon-button, .icon-select {
@@ -191,7 +210,7 @@ button:disabled,
 	background: none;
 	font-weight: bold;
 	outline: none;
-	color: var(--text);
+	color: var(--button-text-color);
 	background: var(--field-background);
 	cursor: pointer;
 }
@@ -201,6 +220,7 @@ button:disabled,
 	width: auto;
 	height: auto;
 	padding-left: 8px;
+	color: var(--button-text-color-focus);
 }
 
 /* -------------------
@@ -288,22 +308,26 @@ dialog.dialog {
 
 dialog.modal.info,
 dialog.dialog.info {
-	background: var(--info);
+	background: var(--dialog-info-background);
+	color: var(--dialog-info-text-color);
 }
 
 dialog.modal.success,
 dialog.dialog.success {
-	background: var(--success);
+	background: var(--dialog-success-background);
+	color: var(--dialog-success-text-color);
 }
 
 dialog.modal.warn,
 dialog.dialog.warn {
-	background: var(--warning);
+	background: var(--dialog-warning-background);
+	color: var(--dialog-warning-text-color);
 }
 
 dialog.modal.error,
 dialog.dialog.error {
-	background: var(--danger);
+	background: var(--dialog-error-background);
+	color: var(--dialog-error-text-color);
 }
 
 /* ====================
@@ -326,6 +350,11 @@ fieldset {
 	page-break-inside: avoid;
 }
 
+legend {
+	font-size: var(--label-font-size);
+	font-weight: var(--label-font-weight);
+}
+
 /* -------------------
  * Input Fields
  * -------------------
@@ -338,6 +367,13 @@ fieldset {
 .field label {
 	display: inline-block;
 	margin-bottom: var(--field-label-margin-bottom);
+	font-size: var(--label-font-size);
+	font-weight: var(--label-font-weight);
+	transition: all var(--component-transition-duration);
+}
+
+.field:has(:disabled) label {
+	color: var(--disabled);
 }
 
 .field input,
@@ -350,25 +386,9 @@ fieldset {
 	border: var(--field-border);
 	background: var(--field-background);
 	font-family: var(--input-font);
-	color: var(--text);
+	color: var(--field-text-color);
 	font-size: var(--input-font-size);
 	transition: all var(--component-transition-duration);
-}
-
-.field input:hover,
-.field select:hover,
-.field textarea:hover {
-	box-shadow: var(--field-shadow-hover);
-	outline: var(--field-outline-hover);
-	background: var(--field-background-hover);
-}
-
-.field input:focus,
-.field select:focus,
-.field textarea:focus {
-	box-shadow: var(--field-shadow-focus);
-	outline: var(--field-outline-focus);
-	background: var(--field-background-focus);
 }
 
 .field.error input,
@@ -385,16 +405,40 @@ fieldset {
 	background: var(--field-background-ok);
 }
 
+.field input:hover,
+.field select:hover,
+.field textarea:hover {
+	box-shadow: var(--field-shadow-hover);
+	outline: var(--field-outline-hover);
+	background: var(--field-background-hover);
+	border: var(--field-border-hover);
+	color: var(--field-text-color-hover);
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+	box-shadow: var(--field-shadow-focus);
+	outline: var(--field-outline-focus);
+	background: var(--field-background-focus);
+	border: var(--field-border-focus);
+	color: var(--field-text-color-focus);
+}
+
 .field input:disabled,
 .field select:disabled,
 .field textarea:disabled {
 	border: var(--field-border-disabled);
 	background: var(--field-background-disabled);
 	cursor: not-allowed;
+	color: var(--field-text-color-disabled);
+	outline: none;
+	box-shadow: none;
 }
 
 .field .error-message {
-	color: var(--danger);
+	color: var(--error);
+	font-size: var(--label-font-size);
 }
 
 /* -------------------
@@ -430,6 +474,8 @@ fieldset {
 	align-items: center;
 	width: 100%;
 	margin: 0;
+	font-size: var(--text-font-size);
+	font-weight: normal;
 }
 
 /* Custom */
@@ -544,6 +590,7 @@ form, #preview {
 	background: white;
 	margin-top: var(--general-padding);
 	margin-bottom: var(--general-padding);
+	box-shadow: var(--preview-shadow);
 }
 
 #preview .pagedjs_page:first-of-type {
@@ -577,4 +624,13 @@ main:has(#preview-wrapper.visible) {
 	.stepper .stepper-page-number {
 		display: none;
 	}
+}
+
+.summary-group {
+	margin-top: var(--component-vertical-margin);
+	margin-bottom: var(--component-vertical-margin);
+}
+
+.summary-group-label, .summary-input-label {
+	font-weight: bold;
 }

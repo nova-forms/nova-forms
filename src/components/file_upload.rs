@@ -4,7 +4,7 @@ use leptos::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{Group, GroupContext, Icon, QueryString};
+use crate::{Group, GroupContext, Icon, QueryStringPart};
 use serde::de::Error;
 use server_fn::codec::{MultipartData, MultipartFormData};
 use web_sys::{wasm_bindgen::JsCast, FormData, HtmlInputElement};
@@ -17,7 +17,7 @@ use web_sys::{wasm_bindgen::JsCast, FormData, HtmlInputElement};
 #[component]
 pub fn FileUpload(
     /// The query string to bind to a list of `FileId`s.
-    #[prop(into)] bind: QueryString
+    #[prop(into)] bind: QueryStringPart
 ) -> impl IntoView {
     let (file_info, set_file_info) = create_signal(Vec::new());
 

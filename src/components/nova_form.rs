@@ -14,7 +14,7 @@ use std::{fmt::Debug, marker::PhantomData, path::{Path, PathBuf}, str::FromStr};
 use thiserror::Error;
 
 use crate::{
-    local_utc_offset, use_translation, DialogKind, FormData, GroupContext, Modal, QueryString, APP_CSS, PRINT_CSS, VARIABLES_CSS
+    local_utc_offset, qs, use_translation, BaseGroupContext, Data, DialogKind, FormData, Group, Modal, QueryString, QueryStringPart, APP_CSS, PRINT_CSS, VARIABLES_CSS
 };
 
 /// Can be used to provide custom translations.
@@ -52,7 +52,7 @@ pub enum SubmitState {
 /// This context is only available in the backend.
 #[derive(Debug, Clone)]
 pub struct RenderContext {
-    form_data: FormData,
+    form_data: Data,
     meta_data: MetaData,
 }
 
@@ -63,12 +63,12 @@ impl RenderContext {
     {
         Self {
             meta_data,
-            form_data: FormData::serialize(form_data),
+            form_data: Data::from(form_data),
         }
     }
 
     /// The form data is used to fill the form with data.
-    pub fn form_data(&self) -> &FormData {
+    pub fn data(&self) -> &Data {
         &self.form_data
     }
 
@@ -138,6 +138,13 @@ pub struct FormContext {
 }
 
 impl FormContext {
+    pub fn new(form_id: &'static str) -> Self {
+        Self {
+            form_id: Ustr::from(form_id),
+            preview: create_rw_signal(false),
+        }
+    }
+
     pub fn is_render_mode(&self) -> bool {
         self.preview.get() || use_context::<RenderContext>().is_some()
     }
@@ -172,7 +179,7 @@ pub fn NovaForm<ServFn, L, K>(
     /// The server function that will be called when the form is submitted.
     on_submit: Action<ServFn, Result<(), ServerFnError>>,
     /// The query string that binds the form to the form data.
-    #[prop(into)] bind: QueryString,
+    #[prop(into)] bind: QueryStringPart,
     /// The query string that binds the form to the metadata.
     #[prop(into)] bind_meta_data: QueryString,
     /// The i18n context.
@@ -195,21 +202,23 @@ where
     if cfg!(debug_assertions) {
         logging::log!("debug mode enabled, prefilling input fields with valid data");
     }
-    //let (local_storage, set_local_storage, _) = use_local_storage::<Option<FormDataSerialized>, FromToStringCodec>("form_data");
-    //logging::log!("Form data local storage: {:?}, provided {:?}", local_storage.get(), form_data);
 
     let render_context = use_context::<RenderContext>();
-    let form_data_serialized = if let Some(render_context) = &render_context {
-        render_context.form_data().clone()
+    let group = BaseGroupContext::new();
+    provide_context(group);
+    provide_context(group.to_group_context());
+
+    let form_data = if let Some(render_context) = render_context {
+        FormData::from_data(render_context.data().clone())
     } else {
-        FormData::default()
+        FormData::new()
     };
 
-    provide_context(form_data_serialized.clone());
-    let group = GroupContext::new(bind);
-    provide_context(group);
+    create_effect(move |_| {
+        logging::log!("form data changed: {}", form_data.get(qs!()).get().unwrap().to_urlencoded());
+    });
 
-    //provide_context(bind.clone());
+    provide_context(form_data);
 
     let preview = create_rw_signal(false);
     let form_id = Ustr::from("nova-form");
@@ -267,7 +276,7 @@ where
             }*/
 
             group.validate();
-            if group.error() {
+            if group.error().get_untracked() {
                 set_submit_state.set(SubmitState::Error(SubmitError::ValidationError));
                 return;
             }
@@ -276,9 +285,6 @@ where
 
             match ServFn::from_event(&ev) {
                 Ok(new_input) => {
-                    //let form_data = FormDataSerialized::from(&new_input);
-                    //logging::log!("Form data: {form_data:?}");
-                    //set_local_storage.set(form_data.clone());
                     set_submit_state.set(SubmitState::Pending);
                     on_submit.dispatch(new_input);
                 }
@@ -311,17 +317,19 @@ where
             on:submit=on_submit_inner
             class=move || if preview.get() { "hidden" } else { "visible" }
         >
-            {children()}
+            <Group bind=bind>
+                {children()}
+            </Group>
 
             // Add the metadata using hidden fields.
             <input
                 type="hidden"
-                name=bind_meta_data.clone().add_key("locale")
+                name=bind_meta_data.add_key("locale")
                 value=move || i18n.get_locale().to_string()
             />
             <input
                 type="hidden"
-                name=bind_meta_data.clone().add_key("local_utc_offset")
+                name=bind_meta_data.add_key("local_utc_offset")
                 value=move || local_utc_offset().to_string()
             />
         </form> 

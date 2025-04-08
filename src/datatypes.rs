@@ -1,18 +1,26 @@
 mod email;
 mod non_empty_string;
-mod telephone;
+mod phone;
 mod date_time;
 mod date;
 mod time;
 mod accept;
+mod iban;
+mod postal_code;
+mod field;
+mod regional_field;
 
 pub use email::*;
 pub use non_empty_string::*;
-pub use telephone::*;
+pub use phone::*;
 pub use date_time::*;
 pub use date::*;
 pub use time::*;
 pub use accept::*;
+pub use iban::*;
+pub use postal_code::*;
+pub use field::*;
+pub use regional_field::*;
 
 use num_bigint::BigInt;
 use num_rational::BigRational;
@@ -54,7 +62,7 @@ where
     }
 }
 
-macro_rules! impl_direct_datatypes {
+macro_rules! impl_datatypes {
     ( $( $t:ty where $($name:literal $( : $val:literal)? ),* $(,)? );* $(;)? ) => {
         $(
             impl Datatype for $t {
@@ -78,7 +86,7 @@ macro_rules! impl_direct_datatypes {
     };
 }
 
-impl_direct_datatypes! {
+impl_datatypes! {
     u8 where "type": "number", "step": "1", "min": "0", "max": "255", "required";
     Optional<u8> where "type": "number", "step": "1", "min": "0", "max": "255";
     u16 where "type": "number", "step": "1", "min": "0", "max": "65535", "required";
@@ -117,26 +125,6 @@ impl_direct_datatypes! {
 #[macro_export]
 macro_rules! impl_datatype {
     ($this:ty) => {
-        impl std::fmt::Display for $this {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                write!(f, "{}", self.0)
-            }
-        }
-
-        impl std::ops::Deref for $this {
-            type Target = <$this as $crate::Datatype>::Inner;
-
-            fn deref(&self) -> &Self::Target {
-                &self.0
-            }
-        }
-
-        impl Into<<$this as $crate::Datatype>::Inner> for $this {
-            fn into(self) -> <$this as $crate::Datatype>::Inner {
-                self.0
-            }
-        }
-
         impl std::str::FromStr for $this {
             type Err = <$this as $crate::Datatype>::Error;
         
@@ -146,6 +134,32 @@ macro_rules! impl_datatype {
         }
 
         impl<'de> serde::Deserialize<'de> for $this {
+            fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+            where
+                D: serde::Deserializer<'de>,
+            {
+                let value = <$this as $crate::Datatype>::Inner::deserialize(deserializer)?;
+                <$this as $crate::Datatype>::validate(value).map_err(serde::de::Error::custom)
+            }
+        }
+    };
+
+    ($this:ty where $generic:ident : $sat:ident) => {
+        impl<$generic>  std::str::FromStr for $this
+        where
+            $generic: $sat
+        {
+            type Err = <$this as $crate::Datatype>::Error;
+        
+            fn from_str(s: &str) -> Result<Self, Self::Err> {
+                <$this as $crate::Datatype>::validate(<$this as $crate::Datatype>::Inner::from_str(s).map_err(<$this as $crate::Datatype>::Error::from)?)
+            }
+        }
+
+        impl<'de, $generic> serde::Deserialize<'de> for $this
+        where
+            $generic: $sat
+        {
             fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
             where
                 D: serde::Deserializer<'de>,
@@ -210,5 +224,4 @@ where
     } else {
         (move || format!("{}", value.get())).into()
     }
-    
 }

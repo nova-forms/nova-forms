@@ -1,11 +1,11 @@
-use std::fmt::Display;
+use std::fmt::{Debug, Display};
 
 use leptos::*;
 use ustr::Ustr;
 
 /// A part of a query string.
 /// Either an index for arrays or a key to access a value.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord, Debug)]
 pub enum QueryStringPart {
     Index(usize),
     Key(Ustr),
@@ -20,10 +20,28 @@ impl Display for QueryStringPart {
     }
 }
 
+impl From<&str> for QueryStringPart {
+    fn from(value: &str) -> Self {
+        QueryStringPart::Key(Ustr::from(value))
+    }
+}
+
+impl From<String> for QueryStringPart {
+    fn from(value: String) -> Self {
+        QueryStringPart::from(value.as_str())
+    }
+}
+
+impl From<usize> for QueryStringPart {
+    fn from(value: usize) -> Self {
+        QueryStringPart::Index(value)
+    }
+}
+
 /// Used to bind a form input element to a form data element.
 /// Note that `QueryString` supports a maximal depth of 16.
 /// Creating query strings consisting of more than 16 parts will panic.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash, Default, Debug)]
 pub struct QueryString {
     parts: [Option<QueryStringPart>; 16],
     len: usize,
@@ -64,8 +82,15 @@ impl QueryString {
         self.iter().count()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
+
     /// Checks whether the current query string extends the other query string.
     pub fn extends(&self, other: &Self) -> Option<QueryString> {
+        debug_assert_eq!(self.parts.iter().filter(|p| p.is_some()).count(), self.len);
+        debug_assert_eq!(other.parts.iter().filter(|p| p.is_some()).count(), other.len);
+
         if self.len() < other.len() {
             return None;
         }
@@ -85,6 +110,7 @@ impl QueryString {
     pub fn add(mut self, part: QueryStringPart) -> Self {
         self.parts[self.len] = Some(part);
         self.len += 1;
+        debug_assert_eq!(self.parts.iter().filter(|p| p.is_some()).count(), self.len);
         self
     }
 
@@ -94,6 +120,27 @@ impl QueryString {
 
     pub fn add_key<K: AsRef<str>>(self, key: K) -> Self {
         self.add(QueryStringPart::Key(Ustr::from(key.as_ref())))
+    }
+
+    pub fn first(&self) -> Option<QueryStringPart> {
+        self.parts[0]
+    }
+
+    pub fn remove(mut self) -> Self {
+        self.parts[self.len - 1] = None;
+        self.len -= 1;
+        debug_assert_eq!(self.parts.iter().filter(|p| p.is_some()).count(), self.len);
+        self
+    }
+
+    pub fn remove_first(mut self) -> Self {
+        for i in 1..self.len {
+            self.parts[i - 1] = self.parts[i];
+        }
+        self.parts[self.len - 1] = None;
+        self.len -= 1;
+        debug_assert_eq!(self.parts.iter().filter(|p| p.is_some()).count(), self.len);
+        self
     }
 }
 
@@ -161,8 +208,14 @@ macro_rules! qs {
     ( $key:ident $($t:tt)* ) => {
         qs!(@part($crate::QueryString::default().add_key(stringify!($key))) $($t)*)
     };
+    ( .. $($t:tt)* ) => {
+        qs!(@part(leptos::expect_context::<$crate::GroupContext>().qs()) $($t)*)
+    };
     () => {
         $crate::QueryString::default()
+    };
+    ( @part($part:expr) [!] $($t:tt)* ) => {
+        qs!(@part($part.remove()) $($t)*)
     };
     ( @part($part:expr) [ $index:literal ] $($t:tt)* ) => {
         qs!(@part($part.add_index($index)) $($t)*)
@@ -170,13 +223,15 @@ macro_rules! qs {
     ( @part($part:expr) [ $key:ident ] $($t:tt)* ) => {
         qs!(@part($part.add_key(stringify!($key))) $($t)*)
     };
-    (@part($part:expr) ) => {
+    ( @part($part:expr) ) => {
         $part
     };
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::{BaseGroupContext, GroupContext};
+
     use super::*;
 
     #[test]
@@ -194,6 +249,23 @@ mod tests {
         assert_eq!(QueryString::from("a").add_key("b"), QueryString::from("a[b]"));
         assert_eq!(QueryString::from("a").add_index(0), QueryString::from("a[0]"));
     }
+
+    #[test]
+    fn test_qs_context() {
+        let _ = leptos::create_runtime();
+        provide_context(BaseGroupContext::new().to_group_context());
+        provide_context(GroupContext::new(QueryStringPart::from("a")));
+        expect_context::<GroupContext>();
+        let qs = qs!(..[b][c]);
+        assert_eq!(qs, QueryString::from("a[b][c]"));
+    }
+
+    #[test]
+    fn test_qs_remove() {
+        let qs = qs!(a[b][d][!][c]);
+        assert_eq!(qs, QueryString::from("a[b][c]"));
+    }
+    
     
     #[test]
     fn test_qs_macro() {
@@ -205,5 +277,23 @@ mod tests {
         assert_eq!(qs, QueryString::from("a"));
         let qs = qs!();
         assert_eq!(qs, QueryString::default());
+    }
+
+    #[test]
+    fn test_first() {
+        let qs = qs!(a[b][c]);
+        assert_eq!(qs.first(), Some(QueryStringPart::Key(Ustr::from("a"))));
+    }
+
+    #[test]
+    fn test_remove() {
+        let qs = qs!(a[b][c]);
+        assert_eq!(qs.remove(), QueryString::from("a[b]"));
+    }
+
+    #[test]
+    fn test_remove_first() {
+        let qs = qs!(a[b][c]);
+        assert_eq!(qs.remove_first(), QueryString::from("b[c]"));
     }
 }

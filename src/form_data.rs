@@ -1,199 +1,256 @@
-use std::{collections::HashMap, str::FromStr};
+use std::collections::{BTreeMap, HashMap};
 
 use leptos::*;
-use percent_encoding::{percent_decode, percent_encode, NON_ALPHANUMERIC};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{de::DeserializeOwned, Serialize};
 
 use crate::{QueryString, QueryStringPart};
 
-/// Contains arbitrary form data in a serialized form.
-#[derive(Clone, Copy, Debug, Default, PartialEq)]
-pub struct FormData {
-    data: RwSignal<HashMap<QueryString, String>>
-}
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct FormData(RwSignal<Data>);
 
 impl FormData {
-    pub fn serialize<F>(form_data: &F) -> Self
-    where
-        F: Serialize,
-    {
-        let serialized = serde_qs::to_string(form_data).expect("must be serializable");
-        FormData::from_str(&serialized).unwrap()
+    pub fn new() -> Self {
+        Self(RwSignal::new(Data::new_group()))
     }
 
-    pub fn deserialize<F>(&self) -> F
-    where
-        F: DeserializeOwned,
-    {
-        serde_qs::from_str(&self.to_string()).expect("must be deserializable")
+    pub fn from_data(data: Data) -> Self {
+        Self(RwSignal::new(data))
+    }
+
+    pub fn get(&self, qs: QueryString) -> Signal<Option<Data>> {
+        let self_singal = self.0;
+        Memo::new(move |_| {
+            self_singal.get().get(qs)
+        }).into()
+    }
+
+    pub fn set(&self, qs: QueryString, value: Data) {
+        self.0.update(|data| {
+            data.set(qs, value);
+        });
+    }
+
+    pub fn from_urlencoded(data: &str) -> Self {
+        Self::from_data(Data::from_urlencoded(data))
+    }
+
+    pub fn from<T: Serialize>(value: &T) -> Self {
+        Self::from_data(Data::from(value))
     }
 }
 
-impl FromStr for FormData {
-    type Err = ();
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Data {
+    Group(GroupData),
+    Input(InputData),
+}
 
-    fn from_str(s: &str) -> Result<Self, ()> {
-        let map = s
-            .split("&")
-            .into_iter()
-            .map(|pair| {
-                pair.split_once("=")
-                    .map(|(k, v)| {
-                        (
-                            QueryString::from(k),
-                            percent_decode(v.as_bytes()).decode_utf8_lossy().to_string(),
-                        )
-                    })
-                    .unwrap_or_else(|| (QueryString::from(pair), String::new()))
+impl Data {
+    pub fn new_group() -> Self {
+        Data::Group(GroupData::new())
+    }
+
+    pub fn new_input(value: String) -> Self {
+        Data::Input(InputData::new(value))
+    }
+
+    fn from_vec(data: Vec<(QueryString, String)>) -> Self {
+        let mut parts = HashMap::new();
+
+        for (k, v) in data {
+            if let Some(head) = k.first() {
+                let vec: &mut Vec<(QueryString, String)> = parts
+                    .entry(head)
+                    .or_default();
+
+                vec.push((k.remove_first(), v));
+            } else {
+                return Data::Input(InputData(v));
+            }
+        }
+
+        let group = parts.into_iter()
+            .map(|(head, v)| {
+                (head, Data::from_vec(v))
             })
             .collect();
 
-        Ok(FormData {
-            data: RwSignal::new(map)
-        })
+            Data::Group(GroupData(group))
     }
-}
 
-impl ToString for FormData {
-    fn to_string(&self) -> String {
-        self.data
-            .get()
-            .iter()
+    fn to_vec(&self) -> Vec<(QueryString, String)> {
+        fn visit(data: &Data, qs: QueryString, acc: &mut Vec<(QueryString, String)>) {
+            match data {
+                Data::Group(group) => {
+                    for (head, data) in &group.0 {
+                        visit(data, qs.add(*head), acc);
+                    }
+                }
+                Data::Input(value) => {
+                    acc.push((qs, value.0.clone()));
+                }
+            }
+        }
+
+        let mut acc = Vec::new();
+        visit(self, QueryString::default(), &mut acc);
+        acc
+    }
+
+    pub fn from_urlencoded(data: &str) -> Self {
+        let vec = data.split('&').into_iter()
+            .map(|part| part.split_once('=').map(|(k, v)| {
+                (QueryString::from(k), v.to_owned())
+            }).unwrap_or((QueryString::from(part), String::new())))
+            .collect::<Vec<_>>();
+
+        Self::from_vec(vec)
+    }
+
+    pub fn to_urlencoded(&self) -> String {
+        self.to_vec().into_iter()
             .map(|(k, v)| {
-                format!("{}={}", 
-                    k,
-                    percent_encode(v.as_bytes(), NON_ALPHANUMERIC)
-                )
+                format!("{}={}", k.to_string(), v)
             })
             .collect::<Vec<_>>()
             .join("&")
     }
-}
 
-impl FormData {
-    pub fn values<T: DeserializeOwned + PartialEq>(&self, qs: QueryString) -> Signal<Option<T>> {
-        #[derive(Deserialize)]
-        struct Value<T> {
-            value: T,
-        }
-
-        let signal = self.data;
-
-        Memo::new(move |_| {
-            let data = signal.get();
-
-            let form_data = data
-                .iter()
-                .filter_map(|(k, v)| {
-                    Some(format!("{}={}", 
-                        QueryString::default().add_key("value").join(k.extends(&qs)?),
-                        percent_encode(v.as_bytes(), NON_ALPHANUMERIC)
-                    ))
-                })
-                .collect::<Vec<_>>()
-                .join("&");
-    
-            Some(serde_qs::from_str::<Value<T>>(&form_data.to_string()).ok()?.value)
-        }).into()
+    pub fn to<T: DeserializeOwned>(&self) -> Result<T, serde_qs::Error> {
+        serde_qs::from_str(&self.to_urlencoded())
     }
 
-    pub fn set_values<T: Serialize>(&self, qs: QueryString, values: T) {
-        self.data.update(|data| {
-            let form_data = FormData::serialize(&values);
-            for (k, v) in form_data.data.get_untracked() {
-                data.insert(qs.join(k), v);
+    pub fn from<T: Serialize>(value: &T) -> Self {
+        let data = serde_qs::to_string(value).expect("failed to serialize form data");
+        Data::from_urlencoded(&data)
+    }
+
+    pub fn get(&self, qs: QueryString) -> Option<Data> {
+        if let Some(first) = qs.first() {
+            if let Data::Group(group) = self {
+                group.0.get(&first)?.get(qs.remove_first())
+            } else {
+                None
             }
-        });
+        } else {
+            Some(self.clone())
+        }
     }
 
-    pub fn raw_value(&self, qs: QueryString) -> Signal<String> {
-        let signal = self.data;
-        
-        Memo::new(move |_| {
-            let data = signal.get();
-
-            let value = data
-                .iter()
-                .filter_map(|(k, v)| {
-                    k.extends(&qs)?;
-                    Some(v)
-                })
-                .next()
-                .cloned()
-                .unwrap_or_default();
-    
-            value
-        }).into()
+    pub fn set(&mut self, qs: QueryString, value: Data) {
+        if let Some(first) = qs.first() {
+            if let Data::Group(group) = self {
+                let data = group.0.entry(first).or_insert_with(|| Data::new_group());
+                data.set(qs.remove_first(), value);
+            }
+        } else {
+            *self = value;
+        }
     }
 
-    pub fn set_raw_value<S: Into<String>>(&self, qs: QueryString, value: S) {
-        self.data.update(|data| {
-            data.insert(qs.clone(), value.into());
-        });
+    pub fn len(&self) -> Option<usize> {
+        match self {
+            Data::Group(group) => Some(group.len()),
+            _ => None,
+        }
     }
 
-    pub fn value<T: FromStr>(&self, qs: QueryString) -> Signal<Result<T, T::Err>> {
-        let signal = self.raw_value(qs);
-        Signal::derive(move || T::from_str(&signal.get()))
+    pub fn as_input(&self) -> Option<&InputData> {
+        match self {
+            Data::Input(value) => Some(value),
+            _ => None,
+        }
     }
 
-    pub fn set_value<T: ToString>(&self, qs: QueryString, value: T) {
-        self.set_raw_value(qs, value.to_string());
+    pub fn as_group(&self) -> Option<&GroupData> {
+        match self {
+            Data::Group(group) => Some(group),
+            _ => None,
+        }
     }
 
-    pub fn len(&self, qs: QueryString) -> Option<usize> {
-        self.data
-            .get_untracked()
-            .keys()
-            .map(|k| {
-                if let Some(k) = k.extends(&qs) {
-                    k.iter().next().and_then(|&p| {
-                        if let QueryStringPart::Index(i) = p {
-                            Some(i)
-                        } else {
-                            None
-                        }
-                    })
-                } else {
-                    None
-                }
-            })
-            .reduce(|l1, l2| {
-                if let (Some(l1), Some(l2)) = (l1, l2) {
-                    Some(l1.max(l2))
-                } else {
-                    None
-                }
-            })
-            .flatten()
-            .map(|l| l + 1)
+    pub fn into_input(self) -> Option<InputData> {
+        match self {
+            Data::Input(value) => Some(value),
+            _ => None,
+        }
+    }
+
+    pub fn into_group(self) -> Option<GroupData> {
+        match self {
+            Data::Group(group) => Some(group),
+            _ => None,
+        }
+    }
+
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct GroupData(BTreeMap<QueryStringPart, Data>);
+
+impl GroupData {
+    pub fn new() -> Self {
+        Self(BTreeMap::new())
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
     }
 }
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct InputData(String);
+
+impl InputData {
+    pub fn new(value: String) -> Self {
+        Self(value)
+    }
+
+    pub fn raw(&self) -> &str {
+        &self.0
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
+    use serde::Deserialize;
+
     use crate::qs;
     use super::*;
 
     #[test]
-    fn test_value() {
+    fn test_from_urlencoded() {
         let _ = leptos::create_runtime();
 
-        let form_data = FormData::from_str("a=1&b=2&c=3").unwrap();
-        assert_eq!(form_data.value::<i32>(qs!(a)).get_untracked().unwrap(), 1);
-        assert_eq!(form_data.value::<i32>(qs!(b)).get_untracked().unwrap(), 2);
-        assert_eq!(form_data.value::<i32>(qs!(c)).get_untracked().unwrap(), 3);
+        let form_data = FormData::from_urlencoded("a=1&b=2&c=3");
+        assert_eq!(form_data.get(qs!(a)).get_untracked().unwrap().as_input().unwrap().raw(), "1");
+        assert_eq!(form_data.get(qs!(b)).get_untracked().unwrap().as_input().unwrap().raw(), "2");
+        assert_eq!(form_data.get(qs!(c)).get_untracked().unwrap().as_input().unwrap().raw(), "3");
     }
 
+    #[test]
+    fn test_to_urlencoded() {
+        let _ = leptos::create_runtime();
+
+        let form_data = FormData::from_urlencoded("a=1&b=2&c=3");
+        assert_eq!(form_data.get(qs!(a)).get_untracked().unwrap().as_input().unwrap().raw(), "1");
+        assert_eq!(form_data.get(qs!(b)).get_untracked().unwrap().as_input().unwrap().raw(), "2");
+        assert_eq!(form_data.get(qs!(c)).get_untracked().unwrap().as_input().unwrap().raw(), "3");
+        assert_eq!(form_data.get(qs!()).get_untracked().unwrap().to_urlencoded(), "a=1&b=2&c=3");
+    }
+
+    
     #[test]
     fn test_set_value() {
         let _ = leptos::create_runtime();
 
-        let form_data = FormData::from_str("a=1&b=2&c=3").unwrap();
-        form_data.set_value(QueryString::from("a"), 4);
-        assert_eq!(form_data.value::<i32>(qs!(a)).get_untracked().unwrap(), 4);
-        assert_eq!(form_data.value::<i32>(qs!(b)).get_untracked().unwrap(), 2);
-        assert_eq!(form_data.value::<i32>(qs!(c)).get_untracked().unwrap(), 3);
+        let form_data = FormData::from_urlencoded("a=1&b=2&c=3");
+        form_data.set(qs!(b), Data::new_input("7".to_owned()));
+        assert_eq!(form_data.get(qs!(a)).get_untracked().unwrap().as_input().unwrap().raw(), "1");
+        assert_eq!(form_data.get(qs!(b)).get_untracked().unwrap().as_input().unwrap().raw(), "7");
+        assert_eq!(form_data.get(qs!(c)).get_untracked().unwrap().as_input().unwrap().raw(), "3");
+
     }
 
     #[test]
@@ -207,8 +264,8 @@ mod tests {
             c: i32,
         }
 
-        let form_data = FormData::from_str("a=1&b=2&c=3").unwrap();
-        assert_eq!(form_data.values::<Test>(qs!()).get_untracked().unwrap(), Test { a: 1, b: 2, c: 3 });
+        let form_data = FormData::from_urlencoded("a=1&b=2&c=3");
+        assert_eq!(form_data.get(qs!()).get_untracked().unwrap().to::<Test>().unwrap(), Test { a: 1, b: 2, c: 3 });
     }
 
     #[test]
@@ -222,16 +279,16 @@ mod tests {
             c: i32,
         }
 
-        let form_data = FormData::from_str("a=1&b=2&c=3").unwrap();
-        form_data.set_values(qs!(), Test { a: 4, b: 5, c: 6 });
-        assert_eq!(form_data.values::<Test>(qs!()).get_untracked().unwrap(), Test { a: 4, b: 5, c: 6 });
+        let form_data = FormData::from_urlencoded("a=1&b=2&c=3");
+        form_data.set(qs!(), Data::from(&Test { a: 4, b: 5, c: 6 }));
+        assert_eq!(form_data.get(qs!()).get_untracked().unwrap().to::<Test>().unwrap(), Test { a: 4, b: 5, c: 6 });
     }
 
     #[test]
     fn test_len() {
         let _ = leptos::create_runtime();
 
-        let form_data = FormData::from_str("a[0]=1&a[3]=2&a[1]=3").unwrap();
-        assert_eq!(form_data.len(qs!(a)).unwrap(), 4);
+        let form_data = FormData::from_urlencoded("a[0]=1&a[3]=21&a[2]=23&a[1]=3");
+        assert_eq!(form_data.get(qs!(a)).get_untracked().unwrap().as_group().unwrap().len(), 4);
     }
 }

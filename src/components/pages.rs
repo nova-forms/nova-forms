@@ -1,5 +1,5 @@
 use leptos::*;
-use crate::{ButtonGroup, Button};
+use crate::{Button, ButtonGroup, QueryStringPart};
 
 mod context {
     use leptos::TextProp;
@@ -64,6 +64,7 @@ mod context {
             Self { id }
         }
 
+        #[allow(unused)]
         pub fn id(&self) -> PageId {
             self.id
         }
@@ -132,6 +133,8 @@ mod context {
 
 pub(crate) use context::*;
 
+use super::Group;
+
 #[component]
 pub fn Pages(
     children: Children,
@@ -151,6 +154,8 @@ where
 /// Creates a new page in the form.
 #[component]
 pub fn Page(
+    /// An optional binding that creates a new group.
+    #[prop(into, optional)] bind: Option<QueryStringPart>,
     /// The id of the page.
     id: &'static str,
     /// The label of the page.
@@ -161,14 +166,29 @@ pub fn Page(
     let id = PageId::new(id);
 
     let pages_context = expect_context::<RwSignal<PagesContext>>();
-    pages_context.update(|pages_context| pages_context.register(label, id));
+    pages_context.update(|pages_context| pages_context.register(label.clone(), id));
 
-    view! {
+    let label_clone = label.clone();
+
+    let page = move || view! {
         <Provider value=PageContext::new(id)>
             <div class=move || {
                 if pages_context.get().is_selected(id) { "page selected" } else { "page hidden" }
-            }>{children()}</div>
+            }>
+                <h2>{label}</h2>
+                {children()}
+            </div>
         </Provider>
+    };
+
+    if let Some(bind) = bind {
+        view! {
+            <Group bind=bind label=label_clone>
+                {page()}
+            </Group>
+        }.into_view()
+    } else {
+        page().into_view()
     }
 }
 

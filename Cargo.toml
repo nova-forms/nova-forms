@@ -35,7 +35,7 @@ time = { version = "0.3", features = ["serde", "parsing", "formatting", "local-o
 num-bigint = { version = "0.4", features = ["serde"] }
 num-rational = { version = "0.4", features = ["serde"] }
 ustr = "1"
-strum = { git = "https://github.com/Peternator7/strum", features = ["derive"] }
+strum = { version = "0.27", features = ["derive"] }
 itertools = "0.13"
 
 [features]

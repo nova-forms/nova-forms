@@ -1,4 +1,4 @@
-use std::str::ParseBoolError;
+use std::{fmt::{Display, self}, ops::Deref, str::ParseBoolError};
 
 use leptos::IntoAttribute;
 use serde::Serialize;
@@ -48,6 +48,26 @@ impl Datatype for Accept {
 impl Default for Accept {
     fn default() -> Self {
         Self::validate(true.into()).unwrap()
+    }
+}
+
+impl Display for Accept {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl Deref for Accept {
+    type Target = bool;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+impl Into<bool> for Accept {
+    fn into(self) -> bool {
+        self.0
     }
 }
 

@@ -1,6 +1,6 @@
 use leptos::*;
 
-use crate::{ButtonGroup, GroupContext, QueryString};
+use crate::{ButtonGroup, GroupContext, QueryStringPart};
 
 use super::{Button, Group};
 
@@ -8,7 +8,7 @@ use super::{Button, Group};
 #[component]
 pub fn Repeatable<F, IV>(
     /// The query string that binds the repeatable group to a `Vec`.
-    #[prop(into)] bind: QueryString,
+    #[prop(into)] bind: QueryStringPart,
     /// The item that is repeated.
     item: F
 ) -> impl IntoView
@@ -22,7 +22,7 @@ where
         <Group bind=bind>
             {
                 let group = expect_context::<GroupContext>();
-                let (size, set_size) = create_signal(group.len().unwrap_or(0));
+                let (size, set_size) = create_signal(group.len().get_untracked().unwrap_or_default());
 
                 view! {
                     <div class="repeatable">
@@ -31,8 +31,7 @@ where
                             key=|i| *i
                             children=move |i| {
                                 view! {
-                                    <Group bind=QueryString::default()
-                                        .add_index(i)>{item.with_value(|item| item(i))}</Group>
+                                    <Group bind=QueryStringPart::from(i)>{item.with_value(|item| item(i))}</Group>
                                 }
                             }
                         />

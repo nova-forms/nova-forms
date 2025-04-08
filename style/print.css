@@ -26,8 +26,50 @@ button,
 	display: none !important;
 }
 
+.section {
+	margin: 0;
+}
+
+h1 {
+	font-size: 20pt;
+}
+
+h2 {
+    font-size: 16pt;
+	border-bottom: 1px solid var(--text);
+}
+
+h3 {
+	font-size: 13pt;
+}
+
+* {
+    font-size: 11pt;
+}
+
+.section {
+	break-inside: avoid;
+}
+
+.section-description {
+    display: none;
+}
+
+.screen-only {
+    display: none;
+}
+
+.cols {
+	display: block;
+	margin: 0;
+}
+
 .field {
 	break-inside: avoid;
+	display: block;
+	margin-top: 4px;
+	margin-bottom: 4px;
+	border-bottom: 1px solid #EEE;
 }
 
 .field input,
@@ -40,14 +82,15 @@ button,
 	border: none !important;
 	background: none !important;
 	pointer-events: none;
-	display: block;
+	display: inline-block;
+	width: 50%;
 }
 
 .field .label {
-	display: block;
+	display: inline-block;
 	font-weight: bold;
+	width: 50%;
 }
-
 
 .error-message {
 	display: none;
@@ -64,7 +107,6 @@ button,
 .page.hidden {
 	display: block !important;
 }
-
 
 .dialog,
 .modal {

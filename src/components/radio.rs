@@ -1,6 +1,6 @@
 use std::{fmt::Display, hash::Hash, str::FromStr};
 
-use crate::{use_translation, QueryString, FieldWiring};
+use crate::{use_translation, QueryStringPart, FieldWiring};
 use leptos::*;
 use strum::{IntoEnumIterator, ParseError};
 
@@ -10,7 +10,7 @@ pub fn Radio<T>(
     /// The label of the input field.
     #[prop(into)] label: TextProp,
     /// The query string that binds the input field to the form data.
-    #[prop(into)] bind: QueryString,
+    #[prop(into)] bind: QueryStringPart,
     /// The initial value of the input field.
     #[prop(optional, into)] value: MaybeProp<T>,
     /// A write signal that is updated with the parsed value of the input field.
@@ -28,7 +28,7 @@ where
         set_raw_value,
         render_mode,
         ..
-    } = FieldWiring::<T>::wire(bind, value, change, error);
+    } = FieldWiring::<T>::wire(bind, value, change, error, label.clone());
  
     view! {
         <div

@@ -1,7 +1,6 @@
 use std::{fmt::Display, hash::Hash, str::FromStr};
 
-use crate::{use_translation, QueryString, FieldWiring};
-use html::Select;
+use crate::{use_translation, QueryStringPart, FieldWiring};
 use leptos::*;
 use strum::{IntoEnumIterator, ParseError};
 
@@ -11,7 +10,7 @@ pub fn Select<T>(
     /// The label of the input field.
     #[prop(into)] label: TextProp,
     /// The query string that binds the input field to the form data.
-    #[prop(into)] bind: QueryString,
+    #[prop(into)] bind: QueryStringPart,
     /// The initial value of the input field.
     #[prop(optional, into)] value: MaybeProp<T>,
     /// A write signal that is updated with the parsed value of the input field.
@@ -28,23 +27,18 @@ where
         error,
         set_raw_value,
         render_mode,
+        raw_value,
         ..
-    } = FieldWiring::<T>::wire(bind, value, change, error);
-
-    // Get value on load from the input field.
-    let node_ref = NodeRef::<Select>::new();
-    node_ref.on_load(move |element| {
-        let element: &web_sys::HtmlSelectElement = &*element;
-        let value = element.value();
-        if !value.is_empty() {
-            set_raw_value.call(value);
-        }
-    });
+    } = FieldWiring::<T>::wire(bind, value, change, error, label.clone());
  
     let select_elem = view! {
-        <select _ref=node_ref id=qs.to_string() name=qs.to_string() on:input=move |ev| {
-            set_raw_value.call(event_target_value(&ev));
-        }>
+        <select
+            id=qs.to_string()
+            name=qs.to_string()
+            autocomplete=false
+            prop:value=move || raw_value.get()
+            on:input=move |ev| { set_raw_value.call(event_target_value(&ev));}
+        >
             <For
                 each={move || T::iter()}
                 key={|item| *item}
